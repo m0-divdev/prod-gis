@@ -1,9 +1,6 @@
 import { Agent } from '@mastra/core/agent';
 import { openai } from '@ai-sdk/openai';
-import { z } from 'zod';
-
 // Import shared components
-import { mapDataAgent } from '../shared';
 import {
   planTool,
   executePlanTool,

@@ -1,6 +1,5 @@
 import { Agent } from '@mastra/core/agent';
 import { openai } from '@ai-sdk/openai';
-import { z } from 'zod';
 
 // Import orchestration tools
 import { planTool } from '../tools/planner-tool';
