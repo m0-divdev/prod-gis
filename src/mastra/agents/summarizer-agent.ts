@@ -1,6 +1,5 @@
 import { Agent } from '@mastra/core/agent';
 import { openai } from '@ai-sdk/openai';
-import { z } from 'zod';
 
 export const summarizerAgent = new Agent({
   name: 'Summarizer Agent',
@@ -24,7 +23,6 @@ export const summarizerAgent = new Agent({
   // This agent does not have any tools
   tools: {},
   // Define the expected input structure for the summarizer
-  
+
   // The output is a simple string (the summary)
-  
 });

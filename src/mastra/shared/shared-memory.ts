@@ -7,7 +7,9 @@ import { LibSQLStore } from '@mastra/libsql';
 export const sharedMemory = new Memory({
   storage: new LibSQLStore({
     // Clean DATABASE_URL by removing unsupported query parameters
-    url: cleanDatabaseUrl(process.env.DATABASE_URL || 'file:../mastra-shared.db'),
+    url: cleanDatabaseUrl(
+      process.env.DATABASE_URL || 'file:../mastra-shared.db',
+    ),
   }),
   // Configure memory options - workingMemory is not a direct boolean property
   options: {
@@ -28,7 +30,9 @@ function cleanDatabaseUrl(url: string): string {
   // If it's a PostgreSQL URL, we can't use LibSQL with it
   // Fall back to file-based storage
   if (url.startsWith('postgresql:') || url.startsWith('postgres:')) {
-    console.warn(`PostgreSQL URL detected: ${url}. LibSQL requires libsql:// or file:// URLs. Falling back to file storage.`);
+    console.warn(
+      `PostgreSQL URL detected: ${url}. LibSQL requires libsql:// or file:// URLs. Falling back to file storage.`,
+    );
     return 'file:../mastra-shared.db';
   }
 
@@ -36,9 +40,18 @@ function cleanDatabaseUrl(url: string): string {
     const urlObj = new URL(url);
 
     // Check if the scheme is supported by LibSQL
-    const supportedSchemes = ['libsql:', 'wss:', 'ws:', 'https:', 'http:', 'file:'];
-    if (!supportedSchemes.some(scheme => url.startsWith(scheme))) {
-      console.warn(`Unsupported URL scheme: ${urlObj.protocol}. LibSQL supports: ${supportedSchemes.join(', ')}. Falling back to file storage.`);
+    const supportedSchemes = [
+      'libsql:',
+      'wss:',
+      'ws:',
+      'https:',
+      'http:',
+      'file:',
+    ];
+    if (!supportedSchemes.some((scheme) => url.startsWith(scheme))) {
+      console.warn(
+        `Unsupported URL scheme: ${urlObj.protocol}. LibSQL supports: ${supportedSchemes.join(', ')}. Falling back to file storage.`,
+      );
       return 'file:../mastra-shared.db';
     }
 
@@ -46,7 +59,7 @@ function cleanDatabaseUrl(url: string): string {
     const supportedParams = ['mode', 'cache'];
     const currentParams = Array.from(urlObj.searchParams.keys());
 
-    currentParams.forEach(param => {
+    currentParams.forEach((param) => {
       if (!supportedParams.includes(param)) {
         urlObj.searchParams.delete(param);
       }
@@ -96,7 +109,4 @@ export function createSharedMemory(config: typeof MEMORY_CONFIGS.domainAgent) {
 }
 
 // Export memory utility functions
-export {
-  Memory,
-  LibSQLStore,
-};
+export { Memory, LibSQLStore };
