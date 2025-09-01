@@ -55,7 +55,7 @@ export const getAggregatedMetricTool = createTool({
     searchUrl.searchParams.append('query', location); // Use location to constrain the search
     searchUrl.searchParams.append('limit', '100'); // Get a good number of results to analyze
 
-    const searchResponse = await fetch(searchUrl.toString());
+    const searchResponse = await fetchWithRetry(searchUrl.toString(), {}, 3, 1000);
     if (!searchResponse.ok) {
       throw new Error(
         `TomTom search request failed with status ${searchResponse.status}`,
@@ -118,3 +118,51 @@ export const getAggregatedMetricTool = createTool({
     };
   },
 });
+
+// Helper function for retry logic with exponential backoff
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit = {},
+  maxRetries: number = 3,
+  baseDelay: number = 1000
+): Promise<Response> {
+  let lastError: Error;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, options);
+
+      // If successful or not a rate limit error, return immediately
+      if (response.ok || response.status !== 429) {
+        return response;
+      }
+
+      // Rate limit hit - prepare for retry
+      if (attempt < maxRetries) {
+        const delay = baseDelay * Math.pow(2, attempt); // Exponential backoff
+        console.warn(
+          `TomTom API rate limit hit (429). Retrying in ${delay}ms... (Attempt ${attempt + 1}/${maxRetries + 1})`
+        );
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        // All retries exhausted
+        const errorText = await response.text();
+        lastError = new Error(
+          `TomTom API rate limit exceeded after ${maxRetries + 1} attempts: ${errorText}`
+        );
+      }
+    } catch (error) {
+      lastError = error as Error;
+      if (attempt === maxRetries) break;
+
+      // Network errors - also retry with backoff
+      const delay = baseDelay * Math.pow(2, attempt);
+      console.warn(
+        `TomTom API network error. Retrying in ${delay}ms... (Attempt ${attempt + 1}/${maxRetries + 1})`
+      );
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+
+  throw lastError!;
+}

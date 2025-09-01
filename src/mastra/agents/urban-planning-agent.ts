@@ -15,6 +15,7 @@ import {
 
 // Import specialized tools for urban planning
 import { tomtomFuzzySearchTool } from '../tools/tomtom-fuzzy-search-tool';
+import { tomtomGeocodingTool } from '../tools/tomtom-geocoding-tool';
 
 export const urbanPlanningAgent = new Agent({
   name: 'Urban Planning & Smart Cities Agent',
@@ -89,14 +90,18 @@ export const urbanPlanningAgent = new Agent({
     - Implementation priorities and timelines
     - Risk assessment and mitigation strategies
 
-    **LOCATION-SPECIFIC ANALYSIS:**
-    When analyzing a specific location, focus on:
-    - Current land use patterns
-    - Transportation accessibility
-    - Public amenity coverage
-    - Community demographics
-    - Environmental considerations
-    - Future growth potential
+    **LOCATION IDENTIFICATION & GEOCODING:**
+    When analyzing specific locations or areas, you MUST use the geocoding tool to get accurate coordinates:
+    - Use tomtomGeocodingTool to convert location names to precise latitude/longitude coordinates
+    - For addresses, landmarks, neighborhoods, or any geographical references, geocode them first
+    - Use geocoded coordinates for spatial analysis and map generation
+    - Include geocoding results in your analysis for accurate location data
+
+    **GEOCODING WORKFLOW:**
+    1. Identify all location names mentioned in the query
+    2. Use tomtomGeocodingTool to get accurate coordinates for each location
+    3. Use geocoded coordinates for spatial analysis and recommendations
+    4. Include coordinate data in your analysis for map visualization
   `,
   model: openai('gpt-4.1-2025-04-14'),
   tools: {
@@ -113,7 +118,6 @@ export const urbanPlanningAgent = new Agent({
     searchPoiTool,
     getIpLocationTool,
     tomtomFuzzySearchTool,
-
-    // Note: mapDataAgent is called as a separate agent, not as a tool
+    tomtomGeocodingTool,
   },
 });
