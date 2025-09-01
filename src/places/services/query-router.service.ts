@@ -6,6 +6,10 @@ export enum QueryType {
   COMPREHENSIVE = 'comprehensive',
   ANALYTICS = 'analytics',
   LOCATION_BASED = 'location_based',
+  URBAN_PLANNING = 'urban_planning',
+  REAL_ESTATE = 'real_estate',
+  ENERGY_UTILITIES = 'energy_utilities',
+  RETAIL = 'retail',
 }
 
 export interface QueryAnalysis {
@@ -58,19 +62,64 @@ export class QueryRouterService {
   }
 
   private classifyQueryType(query: string): QueryType {
+    const lowerQuery = query.toLowerCase();
+
+    // Specialized agent keywords
+    const urbanPlanningKeywords = [
+      'urban planning', 'community', 'infrastructure', 'zoning', 'walkability',
+      'bikeability', 'mixed-use', 'sustainable', 'green space', 'public space',
+      'pedestrian', 'neighborhood', 'district', 'residential', 'commercial'
+    ];
+
+    const realEstateKeywords = [
+      'real estate', 'property', 'land use', 'commercial property', 'rental',
+      'investment', 'market analysis', 'property value', 'commercial space',
+      'office space', 'retail space', 'land development', 'property market'
+    ];
+
+    const energyUtilitiesKeywords = [
+      'energy', 'utilities', 'power grid', 'electrical', 'gas', 'water',
+      'infrastructure', 'renewable', 'solar', 'wind', 'utility network',
+      'power lines', 'substation', 'energy efficiency', 'carbon footprint'
+    ];
+
+    const retailKeywords = [
+      'retail', 'store location', 'shopping center', 'mall', 'franchise',
+      'business location', 'market analysis', 'customer traffic', 'sales potential',
+      'retail space', 'store optimization', 'market penetration', 'trade area'
+    ];
+
     const mapKeywords = ['map', 'show on map', 'geojson', 'coordinates', 'plot', 'visualize'];
     const analyticsKeywords = ['average', 'count', 'sum', 'how many', 'statistics', 'foot traffic', 'busy'];
     const searchKeywords = ['find', 'search', 'look for', 'locate'];
 
+    // Check for specialized agent queries first
+    if (urbanPlanningKeywords.some(keyword => lowerQuery.includes(keyword))) {
+      return QueryType.URBAN_PLANNING;
+    }
+
+    if (realEstateKeywords.some(keyword => lowerQuery.includes(keyword))) {
+      return QueryType.REAL_ESTATE;
+    }
+
+    if (energyUtilitiesKeywords.some(keyword => lowerQuery.includes(keyword))) {
+      return QueryType.ENERGY_UTILITIES;
+    }
+
+    if (retailKeywords.some(keyword => lowerQuery.includes(keyword))) {
+      return QueryType.RETAIL;
+    }
+
+    // Existing classification logic
     if (mapKeywords.some(keyword => query.includes(keyword))) {
       return QueryType.MAP_DATA_ONLY;
     }
-    
+
     if (analyticsKeywords.some(keyword => query.includes(keyword))) {
       return QueryType.ANALYTICS;
     }
 
-    if (searchKeywords.some(keyword => query.includes(keyword)) && 
+    if (searchKeywords.some(keyword => query.includes(keyword)) &&
         !query.includes('weather') && !query.includes('events')) {
       return QueryType.SEARCH_ONLY;
     }
@@ -82,21 +131,45 @@ export class QueryRouterService {
     const agents: string[] = [];
 
     switch (analysis.type) {
+      case QueryType.URBAN_PLANNING:
+        agents.push('urbanPlanningAgent');
+        agents.push('mapDataAgent'); // For geospatial analysis
+        break;
+
+      case QueryType.REAL_ESTATE:
+        agents.push('realEstateAgent');
+        agents.push('mapDataAgent'); // For location analysis
+        break;
+
+      case QueryType.ENERGY_UTILITIES:
+        agents.push('energyUtilitiesAgent');
+        agents.push('mapDataAgent'); // For infrastructure mapping
+        break;
+
+      case QueryType.RETAIL:
+        agents.push('retailAgent');
+        agents.push('mapDataAgent'); // For market analysis
+        break;
+
       case QueryType.MAP_DATA_ONLY:
         agents.push('mapDataAgent');
         break;
+
       case QueryType.SEARCH_ONLY:
         agents.push('orchestratorAgent');
         break;
+
       case QueryType.COMPREHENSIVE:
         agents.push('orchestratorAgent');
         if (analysis.requiresMapping) {
           agents.push('mapDataAgent');
         }
         break;
+
       case QueryType.ANALYTICS:
         agents.push('orchestratorAgent');
         break;
+
       case QueryType.LOCATION_BASED:
         agents.push('orchestratorAgent', 'mapDataAgent');
         break;
@@ -107,21 +180,15 @@ export class QueryRouterService {
 
   private extractLocations(query: string): string[] {
     const matches: string[] = [];
-    
-    // Enhanced location patterns
+
+    // Simple location patterns - keep it minimal and focused
     const patterns = [
-      // Landmarks and parks: "Millennium Park", "Central Park", "Golden Gate Bridge"
-      /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\s+(?:Park|Bridge|Plaza|Square|Center|Mall|Tower|Building|Stadium|Arena|Museum|Library|University|College|Airport|Station))/gi,
-      // Preposition + location: "in Austin", "near London", "at New York", "around Chicago"
-      /\b(?:in|near|at|around|by)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/g,
       // City, State pattern: "Chicago, Illinois", "Austin, Texas"
       /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*),\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/g,
-      // Direct city/state mentions with state names
-      /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*(?:\s+(?:Texas|California|New York|Florida|Illinois|Ohio|Georgia|North Carolina|Michigan|New Jersey|Virginia|Washington|Arizona|Massachusetts|Tennessee|Indiana|Missouri|Maryland|Wisconsin|Colorado|Minnesota|South Carolina|Alabama|Louisiana|Kentucky|Oregon|Oklahoma|Connecticut|Utah|Iowa|Nevada|Arkansas|Mississippi|Kansas|New Mexico|Nebraska|West Virginia|Idaho|Hawaii|New Hampshire|Maine|Montana|Rhode Island|Delaware|South Dakota|North Dakota|Alaska|Vermont|Wyoming|DC)))/g,
-      // Coordinates pattern: "30.264979, -97.746598"
-      /(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/g,
-      // Address-like patterns: "123 Main St"
-      /\d+\s+[A-Z][a-z]+(?:\s+(?:St|Street|Ave|Avenue|Rd|Road|Blvd|Boulevard|Dr|Drive|Ln|Lane|Way|Ct|Court|Pl|Place))/g
+      // Preposition + location: "in Austin", "near London", "at New York"
+      /\b(?:in|near|at|around|by)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/g,
+      // Direct city mentions
+      /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b/g
     ];
 
     patterns.forEach(pattern => {
@@ -132,45 +199,10 @@ export class QueryRouterService {
           matches.push(`${match[1].trim()}, ${match[2].trim()}`);
         } else if (match[1]) {
           matches.push(match[1].trim());
-        } else if (match[0]) {
-          matches.push(match[0].trim());
         }
       }
     });
 
-    // Major US cities (expanded list)
-    const majorCities = [
-      'new york', 'los angeles', 'chicago', 'houston', 'phoenix', 'philadelphia', 
-      'san antonio', 'san diego', 'dallas', 'san jose', 'austin', 'jacksonville',
-      'fort worth', 'columbus', 'charlotte', 'san francisco', 'indianapolis', 
-      'seattle', 'denver', 'washington', 'boston', 'el paso', 'detroit', 'nashville',
-      'portland', 'memphis', 'oklahoma city', 'las vegas', 'louisville', 'baltimore',
-      'milwaukee', 'albuquerque', 'tucson', 'fresno', 'mesa', 'sacramento', 'atlanta',
-      'kansas city', 'colorado springs', 'miami', 'raleigh', 'omaha', 'long beach',
-      'virginia beach', 'oakland', 'minneapolis', 'tulsa', 'arlington', 'tampa',
-      'new orleans', 'wichita', 'cleveland', 'bakersfield', 'aurora', 'anaheim',
-      'honolulu', 'santa ana', 'corpus christi', 'riverside', 'lexington', 'stockton',
-      'toledo', 'st. paul', 'newark', 'greensboro', 'plano', 'henderson', 'lincoln',
-      'buffalo', 'jersey city', 'chula vista', 'fort wayne', 'orlando', 'st. petersburg',
-      'chandler', 'laredo', 'norfolk', 'durham', 'madison', 'lubbock', 'irvine',
-      'winston-salem', 'glendale', 'garland', 'hialeah', 'reno', 'chesapeake',
-      'gilbert', 'baton rouge', 'irving', 'scottsdale', 'north las vegas', 'fremont',
-      'boise', 'richmond', 'san bernardino', 'birmingham', 'spokane', 'rochester',
-      'des moines', 'modesto', 'fayetteville', 'tacoma', 'oxnard', 'fontana',
-      'columbus', 'montgomery', 'moreno valley', 'shreveport', 'aurora', 'yonkers',
-      'akron', 'huntington beach', 'little rock', 'augusta', 'amarillo', 'glendale',
-      'mobile', 'grand rapids', 'salt lake city', 'tallahassee', 'huntsville',
-      'grand prairie', 'knoxville', 'worcester', 'newport news', 'brownsville'
-    ];
-    
-    const lowerQuery = query.toLowerCase();
-    
-    majorCities.forEach(city => {
-      if (lowerQuery.includes(city)) {
-        matches.push(city.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '));
-      }
-    });
-    
     return [...new Set(matches)]; // Remove duplicates
   }
 

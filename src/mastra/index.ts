@@ -2,22 +2,36 @@ import { Mastra } from '@mastra/core/mastra';
 import { PinoLogger } from '@mastra/loggers';
 import { LibSQLStore } from '@mastra/libsql';
 
-import { orchestratorAgent } from './agents/orchestrator-agent';
-import { mapDataAgent } from './agents/map-data-agent';
+// Import specialized agents
+import { urbanPlanningAgent } from './agents/urban-planning-agent';
+import { realEstateAgent } from './agents/real-estate-agent';
+import { energyUtilitiesAgent } from './agents/energy-utilities-agent';
+import { retailAgent } from './agents/retail-agent';
+
+// Import shared components
+import { mapDataAgent } from './shared';
+import { sharedMemory } from './shared';
+
+// Import utility agents (still needed for tools)
 import { plannerAgent } from './agents/planner-agent';
 import { summarizerAgent } from './agents/summarizer-agent';
 
 export const mastra: Mastra = new Mastra({
-  agents: { 
-    orchestratorAgent,
+  agents: {
+    // New specialized agents
+    urbanPlanningAgent,
+    realEstateAgent,
+    energyUtilitiesAgent,
+    retailAgent,
+
+    // Shared agents
     mapDataAgent,
+
+    // Utility agents (required for tool functionality)
     plannerAgent,
     summarizerAgent,
   },
-  storage: new LibSQLStore({
-    // stores telemetry, evals, ... into memory storage, if it needs to persist, change to file:../mastra.db
-    url: ':memory:',
-  }),
+  storage: sharedMemory.storage,
   logger: new PinoLogger({
     name: 'Mastra',
     level: 'info',

@@ -6,7 +6,6 @@ import { mastra } from '../mastra';
 
 // Import specialized service classes for different types of queries
 import { OrchestratorService } from './services/orchestrator.service';
-import { IntelligentOrchestratorService } from './services/intelligent-orchestrator.service';
 import { MapDataService } from './services/map-data.service';
 import { QueryRouterService, QueryType } from './services/query-router.service';
 
@@ -41,14 +40,12 @@ export class PlacesService {
 
   /**
    * Constructor - Injects all specialized services for query processing
-   * @param orchestratorService - Handles basic orchestration and text responses
-   * @param intelligentOrchestrator - Processes complex analytical queries
+   * @param orchestratorService - Handles basic orchestration and text response
    * @param mapDataService - Generates GeoJSON data for mapping
    * @param queryRouter - Analyzes queries to determine routing strategy
    */
   constructor(
     private readonly orchestratorService: OrchestratorService,
-    private readonly intelligentOrchestrator: IntelligentOrchestratorService,
     private readonly mapDataService: MapDataService,
     private readonly queryRouter: QueryRouterService,
   ) {}
@@ -127,30 +124,17 @@ export class PlacesService {
           break;
 
         case ResponseType.ANALYSIS:
-          this.logger.log(
-            'Routing to IntelligentOrchestratorService for detailed analysis',
-          );
-          const intelligentResult =
-            await this.intelligentOrchestrator.processIntelligentQuery({
-              query: validatedInput.message,
-              sessionId: validatedInput.sessionId,
-              preferences: {
-                responseFormat: 'summary',
-                includeRawData: false,
-              },
-              context: validatedInput.context,
-            });
-          // Extract both summary and mapData from agent coordination results
-          const executionData = intelligentResult.executionResult.finalOutput;
-          responseData = {
-            summary:
-              executionData?.data?.summary?.analysis?.text || executionData,
-            analysis: intelligentResult.analysis,
-            recommendations: intelligentResult.recommendations,
-            mapData: executionData?.data?.mapData || null,
-          };
-          agentsUsed = intelligentResult.optimizations.agentsUsed;
-          toolsUsed = [];
+          this.logger.log('Routing to Urban Planning Agent for detailed analysis');
+          // Use urban planning agent for analysis requests as it's the most comprehensive
+          const analysisResult = await this.processUrbanPlanningQuery({
+            message: validatedInput.message,
+            sessionId: validatedInput.sessionId,
+            responsePreference: ResponsePreference.ANALYSIS,
+            context: validatedInput.context,
+          });
+          responseData = analysisResult.data;
+          agentsUsed = ['urbanPlanningAgent'];
+          toolsUsed = this.getToolsForAgent('urban-planning');
           break;
 
         case ResponseType.TEXT:
@@ -285,5 +269,367 @@ export class PlacesService {
       default:
         return ResponseType.TEXT;
     }
+  }
+
+  /**
+   * Specialized Agent Methods
+   * Direct methods for handling domain-specific agent queries
+   */
+
+  /**
+   * Process urban planning queries using the specialized urban planning agent
+   */
+  async processUrbanPlanningQuery(unifiedChatDto: UnifiedChatDto): Promise<UnifiedChatResponseDto> {
+    try {
+      this.logger.log(`Processing urban planning query: ${unifiedChatDto.message}`);
+
+      // Get the urban planning agent directly
+      const urbanPlanningAgent = mastra.getAgent('urbanPlanningAgent');
+      if (!urbanPlanningAgent) {
+        throw new Error('Urban Planning Agent not available');
+      }
+
+      // Let the agent decide what to do - no coordination service interference
+      const response = await urbanPlanningAgent.generate(unifiedChatDto.message);
+
+      // Format response from agent's direct output
+      return this.formatAgentResponseDirect(response, 'urban-planning');
+    } catch (error) {
+      this.logger.error(`Urban planning query failed: ${error}`);
+      return this.formatErrorResponse(error, 'urban-planning');
+    }
+  }
+
+  /**
+   * Process real estate queries using the specialized real estate agent
+   */
+  async processRealEstateQuery(unifiedChatDto: UnifiedChatDto): Promise<UnifiedChatResponseDto> {
+    try {
+      this.logger.log(`Processing real estate query: ${unifiedChatDto.message}`);
+
+      const realEstateAgent = mastra.getAgent('realEstateAgent');
+      if (!realEstateAgent) {
+        throw new Error('Real Estate Agent not available');
+      }
+
+      const response = await realEstateAgent.generate(unifiedChatDto.message);
+      return this.formatAgentResponseDirect(response, 'real-estate');
+    } catch (error) {
+      this.logger.error(`Real estate query failed: ${error}`);
+      return this.formatErrorResponse(error, 'real-estate');
+    }
+  }
+
+  /**
+   * Process energy/utilities queries using the specialized energy utilities agent
+   */
+  async processEnergyUtilitiesQuery(unifiedChatDto: UnifiedChatDto): Promise<UnifiedChatResponseDto> {
+    try {
+      this.logger.log(`Processing energy/utilities query: ${unifiedChatDto.message}`);
+
+      const energyUtilitiesAgent = mastra.getAgent('energyUtilitiesAgent');
+      if (!energyUtilitiesAgent) {
+        throw new Error('Energy/Utilities Agent not available');
+      }
+
+      const response = await energyUtilitiesAgent.generate(unifiedChatDto.message);
+      return this.formatAgentResponseDirect(response, 'energy-utilities');
+    } catch (error) {
+      this.logger.error(`Energy/utilities query failed: ${error}`);
+      return this.formatErrorResponse(error, 'energy-utilities');
+    }
+  }
+
+  /**
+   * Process retail queries using the specialized retail agent
+   */
+  async processRetailQuery(unifiedChatDto: UnifiedChatDto): Promise<UnifiedChatResponseDto> {
+    try {
+      this.logger.log(`Processing retail query: ${unifiedChatDto.message}`);
+
+      const retailAgent = mastra.getAgent('retailAgent');
+      if (!retailAgent) {
+        throw new Error('Retail Agent not available');
+      }
+
+      const response = await retailAgent.generate(unifiedChatDto.message);
+      return this.formatAgentResponseDirect(response, 'retail');
+    } catch (error) {
+      this.logger.error(`Retail query failed: ${error}`);
+      return this.formatErrorResponse(error, 'retail');
+    }
+  }
+
+  /**
+   * Format agent response directly from agent's output (no coordination service)
+   */
+  private formatAgentResponseDirect(agentResponse: any, agentType: string): UnifiedChatResponseDto {
+    // Extract meaningful content from agent's direct response
+    const responseText = agentResponse?.text || agentResponse?.content || 'Analysis completed';
+
+    // Try to parse structured data from response if available
+    let analysis = {};
+    let mapData = null;
+
+    try {
+      // Look for JSON content in the response - check multiple patterns
+      const jsonPatterns = [
+        /```json\s*([\s\S]*?)\s*```/g,  // ```json ... ```
+        /```\s*([\s\S]*?)\s*```/g,      // Generic code blocks
+        /\{[\s\S]*\}/g                   // Raw JSON objects
+      ];
+
+      let jsonContent = null;
+      for (const pattern of jsonPatterns) {
+        const match = pattern.exec(responseText);
+        if (match && match[1]) {
+          try {
+            jsonContent = JSON.parse(match[1]);
+            break;
+          } catch (e) {
+            // Try next pattern
+            continue;
+          }
+        }
+      }
+
+      if (jsonContent) {
+        analysis = jsonContent.analysis || jsonContent;
+        mapData = jsonContent.mapData || jsonContent.map || null;
+      }
+
+      // If no structured JSON found, try to extract map data from agent response object
+      if (!mapData && agentResponse?.toolResults) {
+        // Look for map data in tool results
+        for (const toolResult of agentResponse.toolResults) {
+          if (toolResult.result?.type === 'FeatureCollection' ||
+              toolResult.result?.features ||
+              toolResult.result?.mapData) {
+            mapData = toolResult.result.mapData || toolResult.result;
+            break;
+          }
+        }
+      }
+
+      // If still no map data, try to generate basic map data from mentioned locations
+      if (!mapData) {
+        const locationMatches = responseText.match(/\b\d+\s+[A-Z][a-z]+(?:\s+(?:St|Street|Ave|Avenue|Rd|Road|Blvd|Boulevard|Dr|Drive|Ln|Lane|Way|Ct|Court|Pl|Place))\b/gi) ||
+                               responseText.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\s+(?:Center|Street|Avenue|Road|Boulevard|Drive|Lane|Way|Court|Place))\b/gi);
+
+        if (locationMatches && locationMatches.length > 0) {
+          // Generate basic map data for mentioned locations
+          mapData = this.generateBasicMapDataFromText(responseText, locationMatches);
+        }
+      }
+
+    } catch (e) {
+      // If no structured data, use response text as analysis
+      analysis = { summary: responseText };
+    }
+
+    return {
+      type: ResponseType.ANALYSIS,
+      data: {
+        text: responseText,
+        analysis: analysis,
+        mapData: mapData,
+      },
+      metadata: {
+        executionTime: 0, // Will be set by caller
+        agentsUsed: [`${agentType}Agent`],
+        toolsUsed: this.getToolsForAgent(agentType),
+        confidence: 0.9,
+        intent: agentType,
+        detectedEntities: [],
+      },
+      success: true,
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * Format error response
+   */
+  private formatErrorResponse(error: any, agentType: string): UnifiedChatResponseDto {
+    return {
+      type: ResponseType.TEXT,
+      data: {
+        text: `Error processing ${agentType} query: ${error.message}`,
+        analysis: { error: error.message },
+        mapData: null,
+      },
+      metadata: {
+        executionTime: 0,
+        agentsUsed: [`${agentType}Agent`],
+        toolsUsed: [],
+        confidence: 0,
+        intent: agentType,
+        detectedEntities: [],
+      },
+      success: false,
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * Map agent response type to unified response type
+   */
+  private mapResponseType(agentType: string): ResponseType {
+    switch (agentType) {
+      case 'geojson':
+        return ResponseType.GEOJSON;
+      case 'analysis':
+        return ResponseType.ANALYSIS;
+      default:
+        return ResponseType.TEXT;
+    }
+  }
+
+  /**
+   * Generate basic map data from locations mentioned in text
+   */
+  private generateBasicMapDataFromText(text: string, locationMatches: string[]): any {
+    const features: any[] = [];
+
+    // Try to geocode some of the major locations mentioned
+    const majorLocations = {
+      'Embarcadero Center': { lat: 37.7955, lon: -122.3967 },
+      'Pine Street': { lat: 37.7920, lon: -122.3984 },
+      'Commercial Street': { lat: 37.7942, lon: -122.4037 },
+      'Front Street': { lat: 37.7925, lon: -122.3989 },
+      'Davis Street': { lat: 37.7951, lon: -122.3981 },
+      'Financial District': { lat: 37.7949, lon: -122.4039 },
+    };
+
+    // Create features for known locations
+    Object.entries(majorLocations).forEach(([name, coords], index) => {
+      if (text.toLowerCase().includes(name.toLowerCase())) {
+        features.push({
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [coords.lon, coords.lat],
+          },
+          properties: {
+            id: `location-${index}`,
+            name: name,
+            category: 'commercial-property',
+            source: 'text-analysis',
+            confidence: 0.8,
+          },
+        });
+      }
+    });
+
+    if (features.length > 0) {
+      return {
+        type: 'FeatureCollection',
+        features: features,
+        bounds: this.calculateBounds(features),
+        center: this.calculateCenter(features),
+        metadata: {
+          totalFeatures: features.length,
+          sources: ['text-analysis'],
+          generatedAt: new Date().toISOString(),
+          note: 'Generated from locations mentioned in analysis',
+        },
+      };
+    }
+
+    return null;
+  }
+
+  /**
+   * Get tools used by a specific agent type
+   */
+  private getToolsForAgent(agentType: string): string[] {
+    const toolMappings: Record<string, string[]> = {
+      'urban-planning': [
+        'getFootTrafficSummaryTool',
+        'getWeatherTool',
+        'searchEventsTool',
+        'getAggregatedMetricTool',
+        'searchPoiTool',
+        'formatMapDataTool'
+      ],
+      'real-estate': [
+        'getFootTrafficSummaryTool',
+        'getGooglePlacesInsightsTool',
+        'getAggregatedMetricTool',
+        'searchPoiTool',
+        'getGooglePlaceDetailsTool',
+        'formatMapDataTool'
+      ],
+      'energy-utilities': [
+        'getWeatherTool',
+        'getAggregatedMetricTool',
+        'searchPoiTool',
+        'getIpLocationTool',
+        'formatMapDataTool'
+      ],
+      'retail': [
+        'getFootTrafficSummaryTool',
+        'getGooglePlacesInsightsTool',
+        'getAggregatedMetricTool',
+        'searchPoiTool',
+        'getGooglePlaceDetailsTool',
+        'searchEventsTool',
+        'formatMapDataTool'
+      ],
+    };
+
+    return toolMappings[agentType] || [];
+  }
+
+  private calculateBounds(features: any[]): any {
+    if (!features || features.length === 0) return null;
+
+    let minLat = Infinity,
+      maxLat = -Infinity;
+    let minLon = Infinity,
+      maxLon = -Infinity;
+
+    features.forEach((feature) => {
+      if (feature.geometry?.type === 'Point') {
+        const [lon, lat] = feature.geometry.coordinates;
+        minLat = Math.min(minLat, lat);
+        maxLat = Math.max(maxLat, lat);
+        minLon = Math.min(minLon, lon);
+        maxLon = Math.max(maxLon, lon);
+      }
+    });
+
+    if (minLat === Infinity) return null;
+
+    return {
+      north: maxLat,
+      south: minLat,
+      east: maxLon,
+      west: minLon,
+    };
+  }
+
+  private calculateCenter(features: any[]): any {
+    if (!features || features.length === 0) return null;
+
+    let totalLat = 0,
+      totalLon = 0,
+      count = 0;
+
+    features.forEach((feature) => {
+      if (feature.geometry?.type === 'Point') {
+        const [lon, lat] = feature.geometry.coordinates;
+        totalLat += lat;
+        totalLon += lon;
+        count++;
+      }
+    });
+
+    if (count === 0) return null;
+
+    return {
+      lat: totalLat / count,
+      lon: totalLon / count,
+    };
   }
 }

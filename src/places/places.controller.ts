@@ -139,9 +139,130 @@ export class PlacesController {
     try {
       // Delegate to service for intelligent query processing and routing
       return await this.placesService.processUnifiedChat(unifiedChatDto);
-    } catch (error) {
+    } catch (error: any) {
       throw new HttpException(
         error instanceof Error ? error.message : 'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Specialized Agent Endpoints
+   * Direct endpoints for domain-specific AI agents
+   */
+
+  /**
+   * Urban Planning Agent - Building Better Communities
+   */
+  @Post('urban-planning')
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @ApiOperation({
+    summary: 'Urban Planning & Smart Cities Analysis',
+    description: 'Analyze urban environments for community planning, infrastructure optimization, and sustainable development'
+  })
+  @ApiBody({
+    type: UnifiedChatDto,
+    description: 'Query for urban planning analysis'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Urban planning analysis results',
+    type: UnifiedChatResponseDto
+  })
+  async processUrbanPlanning(@Body() unifiedChatDto: UnifiedChatDto): Promise<UnifiedChatResponseDto> {
+    try {
+      return await this.placesService.processUrbanPlanningQuery(unifiedChatDto);
+    } catch (error) {
+      throw new HttpException(
+        `Urban planning analysis failed: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Real Estate Agent - Data-Driven Property Decisions
+   */
+  @Post('real-estate')
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @ApiOperation({
+    summary: 'Real Estate & Land Use Analysis',
+    description: 'Analyze property markets, land use optimization, and investment opportunities'
+  })
+  @ApiBody({
+    type: UnifiedChatDto,
+    description: 'Query for real estate analysis'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Real estate analysis results',
+    type: UnifiedChatResponseDto
+  })
+  async processRealEstate(@Body() unifiedChatDto: UnifiedChatDto): Promise<UnifiedChatResponseDto> {
+    try {
+      return await this.placesService.processRealEstateQuery(unifiedChatDto);
+    } catch (error) {
+      throw new HttpException(
+        `Real estate analysis failed: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Energy & Utilities Agent - Powering Up with Spatial Insights
+   */
+  @Post('energy-utilities')
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @ApiOperation({
+    summary: 'Energy & Utilities Spatial Analysis',
+    description: 'Optimize energy infrastructure, utility networks, and renewable energy placement'
+  })
+  @ApiBody({
+    type: UnifiedChatDto,
+    description: 'Query for energy/utilities analysis'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Energy/utilities analysis results',
+    type: UnifiedChatResponseDto
+  })
+  async processEnergyUtilities(@Body() unifiedChatDto: UnifiedChatDto): Promise<UnifiedChatResponseDto> {
+    try {
+      return await this.placesService.processEnergyUtilitiesQuery(unifiedChatDto);
+    } catch (error) {
+      throw new HttpException(
+        `Energy/utilities analysis failed: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Retail Agent - Pinpointing the Perfect Store Location
+   */
+  @Post('retail')
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @ApiOperation({
+    summary: 'Retail Location Optimization',
+    description: 'Analyze retail markets, optimize store locations, and maximize sales potential'
+  })
+  @ApiBody({
+    type: UnifiedChatDto,
+    description: 'Query for retail analysis'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Retail analysis results',
+    type: UnifiedChatResponseDto
+  })
+  async processRetail(@Body() unifiedChatDto: UnifiedChatDto): Promise<UnifiedChatResponseDto> {
+    try {
+      return await this.placesService.processRetailQuery(unifiedChatDto);
+    } catch (error) {
+      throw new HttpException(
+        `Retail analysis failed: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
