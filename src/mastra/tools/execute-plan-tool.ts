@@ -79,8 +79,8 @@ export const executePlanTool = createTool({
         'format-map-data': 'format-map-data',
       };
 
-  const canonicalId = aliasMap[toolId] ?? toolId;
-  const toolArgs: Record<string, unknown> = toolCall.args ?? {};
+      const canonicalId = aliasMap[toolId] ?? toolId;
+      const toolArgs: Record<string, unknown> = toolCall.args ?? {};
 
       // Prevent recursion or planning inside execution
       if (canonicalId === 'execute-plan' || canonicalId === 'plan-query') {

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/require-await */
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 
@@ -99,18 +100,9 @@ export const formatMapDataTool = createTool({
       rawData['getGooglePlacesInsightsTool'] ||
       rawData['get-google-places-insights'];
     if (googleInsightsData && googleInsightsData.places) {
-      // This part is tricky. get-google-places-insights only returns place IDs.
-      // To get coordinates, you'd typically need to call get-google-place-details for each ID.
-      // For this tool, we'll assume the rawData might contain pre-fetched details or
-      // we'll just add a placeholder if only IDs are available.
-      for (const placeId of googleInsightsData.places) {
-        // If the rawData also contains details for this placeId, use them
-        // Otherwise, just add a feature with the ID
-        addFeature(
-          { type: 'Point', coordinates: [0, 0] }, // Placeholder coordinates
-          { placeId: placeId, source: 'Google Places Insights (ID only)' },
-        );
-      }
+      // Insights often returns only place IDs without coordinates.
+      // To avoid fabricating map pins, we SKIP adding features for ID-only entries here.
+      // If coordinates are desired, pair insights IDs with Google Place Details in rawData first.
     }
 
     // Process searchEventsTool results
@@ -152,7 +144,7 @@ export const formatMapDataTool = createTool({
     }
 
     // Process searchPoiTool results
-    const searchPoiData = rawData['searchPoiTool'];
+    const searchPoiData = rawData['searchPoiTool'] || rawData['search-poi'];
     if (searchPoiData && searchPoiData.results) {
       for (const result of searchPoiData.results) {
         if (result.position && result.position.lat && result.position.lon) {
@@ -173,7 +165,8 @@ export const formatMapDataTool = createTool({
     }
 
     // Process getPlaceByIdTool results
-    const placeByIdData = rawData['getPlaceByIdTool'];
+    const placeByIdData =
+      rawData['getPlaceByIdTool'] || rawData['get-place-by-id'];
     if (placeByIdData && placeByIdData.position) {
       addFeature(
         {
@@ -201,9 +194,13 @@ export const formatMapDataTool = createTool({
       center: center,
       metadata: {
         totalFeatures: features.length,
-        sources: [
-          ...new Set(features.map((f) => f.properties?.source).filter(Boolean)),
-        ],
+        sources: Array.from(
+          new Set(
+            features
+              .map((f) => (f.properties?.source as string | undefined) || '')
+              .filter((s) => !!s),
+          ),
+        ),
         generatedAt: new Date().toISOString(),
       },
     };
@@ -221,7 +218,13 @@ function calculateBounds(features: any[]): any {
 
   features.forEach((feature) => {
     if (feature.geometry?.type === 'Point') {
-      const [lon, lat] = feature.geometry.coordinates;
+      const [lonRaw, latRaw] = feature.geometry.coordinates as [
+        unknown,
+        unknown,
+      ];
+      const lon = Number(lonRaw);
+      const lat = Number(latRaw);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
       minLat = Math.min(minLat, lat);
       maxLat = Math.max(maxLat, lat);
       minLon = Math.min(minLon, lon);

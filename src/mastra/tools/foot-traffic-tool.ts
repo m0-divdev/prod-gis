@@ -91,7 +91,7 @@ export const getFootTrafficTool = createTool({
           if (errorData.message) {
             message += ` Reason: ${errorData.message}`;
           }
-  } catch {
+        } catch {
           // The body was not JSON, the generic message is sufficient.
         }
         return {

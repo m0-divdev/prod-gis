@@ -1,6 +1,5 @@
 import { Agent } from '@mastra/core/agent';
 import { openai } from '@ai-sdk/openai';
-import { z } from 'zod'; // Import z for output schema
 
 // Import all relevant data-gathering tools
 import { tomtomFuzzySearchTool } from '../tools/tomtom-fuzzy-search-tool';
@@ -8,8 +7,6 @@ import { searchEventsTool } from '../tools/events-tool';
 import { getWeatherTool } from '../tools/weather-tool';
 import { getIpLocationTool } from '../tools/ip-location-tool';
 import { getFootTrafficSummaryTool } from '../tools/foot-traffic-summary-tool';
-import { getGooglePlaceDetailsTool } from '../tools/google-place-details-tool';
-import { getGooglePlacesInsightsTool } from '../tools/google-places-insights-tool';
 import { searchPoiTool } from '../tools/tomtom-tool'; // Assuming searchPoiTool is in tomtom-tool.ts
 import { getAggregatedMetricTool } from '../tools/get-aggregated-metric-tool';
 

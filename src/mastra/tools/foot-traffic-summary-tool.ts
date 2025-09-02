@@ -1,4 +1,4 @@
-import { createTool, type ToolExecutionContext } from '@mastra/core/tools';
+import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { getFootTrafficTool } from './foot-traffic-tool';
 

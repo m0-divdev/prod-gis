@@ -41,6 +41,8 @@ export const getAggregatedMetricTool = createTool({
   execute: async ({ context }) => {
     const { search_query, location, aggregation_type, field_to_aggregate } =
       context;
+    // Preserve a safe string label for messages (avoid TS narrowing issues)
+    const aggLabel: string = String(aggregation_type);
     const apiKey = process.env.TOMTOM_API_KEY;
 
     if (!apiKey) {
@@ -109,12 +111,12 @@ export const getAggregatedMetricTool = createTool({
         result = Math.min(...validValues);
         break;
       default:
-        throw new Error(`Unsupported aggregation type: ${aggregation_type}`);
+        throw new Error(`Unsupported aggregation type: ${aggLabel}`);
     }
 
     return {
       result,
-      description: `The ${aggregation_type} of '${field_to_aggregate}' for ${validValues.length} ${search_query} in ${location} is ${result}.`,
+      description: `The ${aggLabel} of '${field_to_aggregate}' for ${validValues.length} ${search_query} in ${location} is ${result}.`,
     };
   },
 });

@@ -66,7 +66,7 @@ function cleanDatabaseUrl(url: string): string {
     });
 
     return urlObj.toString();
-  } catch (error) {
+  } catch {
     // If URL parsing fails, fall back to file-based storage
     console.warn(`Invalid DATABASE_URL: ${url}, falling back to file storage`);
     return 'file:../mastra-shared.db';
