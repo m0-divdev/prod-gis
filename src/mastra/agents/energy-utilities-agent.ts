@@ -2,11 +2,7 @@ import { Agent } from '@mastra/core/agent';
 import { openai } from '@ai-sdk/openai';
 // Import shared components
 import {
-  planTool,
-  executePlanTool,
-  summarizeTool,
   getWeatherTool,
-  getAggregatedMetricTool,
   searchPoiTool,
   getIpLocationTool,
 } from '../shared';
@@ -51,38 +47,38 @@ export const energyUtilitiesAgent = new Agent({
     **CRITICAL WORKFLOW:**
 
     1. **Infrastructure Assessment:** Map existing utility networks and identify gaps
-    2. **Demand Analysis:** Analyze consumption patterns and growth projections
-    3. **Site Selection:** Use spatial analysis for optimal infrastructure placement
-    4. **Strategic Planning:** Develop implementation roadmaps and ROI analysis
+    2. **Demand Analysis:** Analyze existing infrastructure distribution and coverage gaps
+    3. **Site Selection:** Use spatial analysis for optimal infrastructure placement based on current infrastructure
+    4. **Strategic Planning:** Develop implementation roadmaps and ROI analysis based on infrastructure gaps
 
     **KEY TOOLS TO USE:**
-    - POI search for infrastructure mapping
+    - POI search for existing electrical infrastructure and substations
     - Weather data for renewable energy potential analysis
-    - Aggregated metrics for consumption pattern analysis
     - Location data for site selection and coverage analysis
+    - TomTom search for detailed infrastructure mapping
 
+    **IMPORTANT LIMITATIONS:**
+    - Focus on infrastructure mapping and spatial analysis with available tools
+    - When population density or demographic data is needed, acknowledge this as external data requirement
+    - Provide strategic recommendations based on infrastructure gaps rather than detailed population analytics
+    
     **OUTPUT FORMAT:**
     Always provide structured utility analysis with:
-    - Executive summary of infrastructure needs
-    - Key metrics and efficiency insights
-    - Map visualizations of utility networks and opportunities
-    - Implementation recommendations with cost estimates
-    - Risk assessment and sustainability metrics
+    - Executive summary of infrastructure needs based on current infrastructure mapping
+    - Key insights from available infrastructure and weather data
+    - Map visualizations of utility networks and identified gaps
+    - Implementation recommendations with cost estimates (typical ranges)
+    - Risk assessment and sustainability metrics based on available data
   `,
   model: openai('gpt-4.1-2025-04-14'),
   tools: {
-    // Orchestration tools
-    planTool,
-    executePlanTool,
-    summarizeTool,
-
-    // Energy/utilities specific tools
+    // Energy/utilities specific tools - domain agents should not have orchestration tools
     getWeatherTool,
-    getAggregatedMetricTool,
     searchPoiTool,
     getIpLocationTool,
     tomtomFuzzySearchTool,
 
-    // Note: mapDataAgent is called as a separate agent, not as a tool
+    // Note: getAggregatedMetricTool removed - not suitable for infrastructure analysis
+    // This tool is for aggregating POI properties like ratings, not population data
   },
 });

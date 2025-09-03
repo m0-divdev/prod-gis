@@ -2,10 +2,18 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { join } from 'path';
+import { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.setGlobalPrefix('api');
+
+  // Serve static files from root directory
+  app.useStaticAssets(join(__dirname, '..'), {
+    index: false,
+    prefix: '/static/',
+  });
 
   // Enable validation globally
   app.useGlobalPipes(
@@ -18,9 +26,29 @@ async function bootstrap() {
       },
     }),
   );
+
   app.enableCors({
-    origin: ['http://localhost:3000'], // Next dev port
+    origin: process.env.NODE_ENV === 'production' 
+      ? process.env.ALLOWED_ORIGINS?.split(',') || []
+      : [
+          'http://localhost:3000',
+          'http://localhost:4000',
+          'http://localhost:8080',
+        ],
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type', 
+      'Authorization', 
+      'X-Requested-With',
+      'Accept',
+      'Origin',
+      'Cache-Control',
+    ],
+    exposedHeaders: ['X-Total-Count'],
+    maxAge: 86400, // 24 hours
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   });
 
   // Swagger configuration

@@ -2,9 +2,6 @@ import { Agent } from '@mastra/core/agent';
 import { openai } from '@ai-sdk/openai';
 // Import shared components
 import {
-  planTool,
-  executePlanTool,
-  summarizeTool,
   getFootTrafficSummaryTool,
   getGooglePlacesInsightsTool,
   getAggregatedMetricTool,
@@ -52,34 +49,60 @@ export const retailAgent = new Agent({
 
     **CRITICAL WORKFLOW:**
 
-    1. **Market Research:** Use Google Places Insights for comprehensive competitor analysis
+    1. **Market Research:** Use Google Places Insights for competitive landscape analysis
+       - For large cities: Start with INSIGHT_COUNT to get competitor density
+       - For detailed analysis: Use smaller radius (1-5km) with INSIGHT_PLACES
     2. **Location Assessment:** Evaluate foot traffic and accessibility metrics
     3. **Performance Modeling:** Calculate potential sales and profitability projections
     4. **Strategic Recommendations:** Provide location-specific business strategies
 
+    **IMPORTANT LIMITATIONS:**
+    - Google Places API has limits: max 100 places per request
+    - For large metropolitan areas, focus on specific neighborhoods
+    - When API limits are hit, acknowledge this and provide strategic guidance
+
     **KEY TOOLS TO USE:**
-    - Google Places Insights for competitor density and market analysis
+    - Google Places Insights: Use EXACT structure for competitor analysis:
+      {
+        "insights": ["INSIGHT_COUNT"],
+        "filter": {
+          "locationFilter": { "circle": { "latLng": {"latitude": X, "longitude": Y}, "radius": 5000 } },
+          "typeFilter": { "includedTypes": ["cafe"] },
+          "operatingStatus": ["OPERATING_STATUS_OPERATIONAL"]
+        }
+      }
+      CRITICAL: ALL parameters must be inside the "filter" object
     - Foot traffic data for location performance metrics
     - Events data for seasonal demand patterns
-    - POI search for amenity and infrastructure analysis
-    - Aggregated metrics for statistical market analysis
+    - TomTom search for specific coffee shop/cafe searches in target city
+    - Aggregated metrics for POI statistical analysis (ratings, price levels)
 
     **OUTPUT FORMAT:**
-    Always provide structured retail analysis with:
+    ALWAYS provide a complete retail analysis text response, even if some tools fail:
     - Executive summary of location potential
-    - Key performance metrics and sales projections
-    - Map visualizations of trade areas and competitors
+    - Key performance metrics and sales projections (acknowledge data limitations)
+    - Competitor analysis based on available data
     - Location recommendations with risk-benefit analysis
     - Implementation strategy with timeline and budget estimates
+    
+    **CRITICAL SEARCH REQUIREMENTS:**
+    - For coffee shop analysis: search "coffee shop Los Angeles" or "cafe Los Angeles"
+    - For competitor research: search "starbucks Los Angeles" or specific chains
+    - NEVER search for "retail" - this returns random global locations
+    - ALWAYS include the target city name in all search queries
+    - Use TomTom fuzzy search with query like "coffee shop" and location "Los Angeles, CA"
+    
+    **CRITICAL: ALWAYS GENERATE TEXT ANALYSIS**
+    - Start your response with "Los Angeles Coffee Shop Market Analysis" 
+    - Never return empty analysis text - ALWAYS provide detailed written analysis
+    - If tools fail, state "Due to API limitations..." then provide strategic guidance
+    - Use available data from successful tools to generate insights
+    - Always end with specific location recommendations for Los Angeles neighborhoods
+    - Minimum 200 words of analysis text required
   `,
   model: openai('gpt-4.1-2025-04-14'),
   tools: {
-    // Orchestration tools
-    planTool,
-    executePlanTool,
-    summarizeTool,
-
-    // Retail specific tools
+    // Retail specific tools - domain agents should not have orchestration tools
     getFootTrafficSummaryTool,
     getGooglePlacesInsightsTool,
     getAggregatedMetricTool,
@@ -88,6 +111,7 @@ export const retailAgent = new Agent({
     tomtomFuzzySearchTool,
     searchEventsTool,
 
-    // Note: mapDataAgent is called as a separate agent, not as a tool
+    // Note: planTool, executePlanTool, and summarizeTool removed
+    // These are for orchestrator agents only, not domain specialists
   },
 });

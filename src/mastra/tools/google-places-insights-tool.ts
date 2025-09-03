@@ -155,6 +155,7 @@ type OutputType = {
   count?: string;
   places?: string[];
   businessIntelligence?: BusinessIntelligence;
+  error?: string;
   metadata: {
     analysisType: string;
     searchRadius?: number;
@@ -268,6 +269,10 @@ export const getGooglePlacesInsightsTool = createTool({
           .describe('Potential risks identified'),
       })
       .optional(),
+    error: z
+      .string()
+      .optional()
+      .describe('Error message if API request failed'),
     metadata: z.object({
       analysisType: z.string(),
       searchRadius: z.number().optional(),
@@ -432,6 +437,13 @@ export const getGooglePlacesInsightsTool = createTool({
         const errorBody = await placesResp.text();
         // If still too many places or other error, proceed without places but keep count
         console.error('Places Insights (PLACES) request failed:', errorBody);
+        
+        // Add helpful error message to result for agents to handle
+        if (errorBody.includes('429') || errorBody.includes('RESOURCE_EXHAUSTED')) {
+          result.error = 'Rate limit exceeded. Consider using INSIGHT_COUNT only or reducing search radius.';
+        } else {
+          result.error = `API error: ${errorBody}`;
+        }
       } else {
         const placesJson = (await placesResp.json()) as unknown;
         const placesParsed = apiResponseSchema.safeParse(placesJson);

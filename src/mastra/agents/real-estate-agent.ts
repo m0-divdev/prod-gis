@@ -2,9 +2,6 @@ import { Agent } from '@mastra/core/agent';
 import { openai } from '@ai-sdk/openai';
 // Import shared components
 import {
-  planTool,
-  executePlanTool,
-  summarizeTool,
   getFootTrafficSummaryTool,
   getGooglePlacesInsightsTool,
   getAggregatedMetricTool,
@@ -59,8 +56,30 @@ export const realEstateAgent = new Agent({
 
   Do not fabricate numeric metrics. If a tool fails, state that explicitly and proceed with qualitative guidance. Prefer smaller adjusted radius over returning too many places.
 
+    **CRITICAL REQUIREMENTS:**
+    - ALWAYS generate complete analysis text even if tools fail
+    - For Miami South Beach analysis, focus on luxury real estate, tourism impact, beachfront properties
+    - Never return empty typeFilter - always specify relevant includedTypes
+    - Start analysis with location-specific market overview
+    - Provide specific neighborhood recommendations within the target area
+
     **KEY TOOLS TO USE:**
-    - Google Places Insights for market density and competitor analysis
+    - Google Places Insights: Use EXACT structure for market analysis:
+      {
+        "insights": ["INSIGHT_COUNT"],
+        "filter": {
+          "locationFilter": { "circle": { "latLng": {"latitude": X, "longitude": Y}, "radius": 2000 } },
+          "typeFilter": { "includedTypes": ["real_estate_agency", "lodging", "restaurant"] },
+          "operatingStatus": ["OPERATING_STATUS_OPERATIONAL"]
+        },
+        "analysisType": "MARKET_DENSITY",
+        "businessContext": { "industry": "real estate" }
+      }
+      CRITICAL: typeFilter must have includedTypes (never empty {})
+    - For real estate analysis, use relevant types:
+      - Market activity: ["real_estate_agency", "bank", "accounting"]
+      - Amenities: ["restaurant", "shopping_mall", "school", "hospital"]
+      - Tourism/hospitality: ["lodging", "tourist_attraction", "amusement_park"]
     - Foot traffic data for location performance metrics
     - POI search for amenity and infrastructure analysis
     - Aggregated metrics for statistical market analysis
@@ -82,12 +101,7 @@ export const realEstateAgent = new Agent({
   `,
   model: openai('gpt-4.1-2025-04-14'),
   tools: {
-    // Orchestration tools
-    planTool,
-    executePlanTool,
-    summarizeTool,
-
-    // Real estate specific tools
+    // Real estate specific tools - domain agents should not have orchestration tools
     getFootTrafficSummaryTool,
     getGooglePlacesInsightsTool,
     getAggregatedMetricTool,
@@ -95,6 +109,7 @@ export const realEstateAgent = new Agent({
     getGooglePlaceDetailsTool,
     tomtomFuzzySearchTool,
 
-    // Note: mapDataAgent is called as a separate agent, not as a tool
+    // Note: planTool, executePlanTool, and summarizeTool removed
+    // These are for orchestrator agents only, not domain specialists
   },
 });

@@ -26,7 +26,7 @@ import {
 // Swagger tag for grouping all endpoints under "Places" in API docs
 @ApiTags('Places')
 // Define the base route for all endpoints in this controller
-@Controller('api/places')
+@Controller('places')
 export class PlacesController {
   /**
    * Constructor - Injects the PlacesService for handling business logic
