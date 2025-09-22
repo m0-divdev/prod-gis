@@ -27,12 +27,28 @@ import {
 @ApiTags('Places')
 // Define the base route for all endpoints in this controller
 @Controller('places')
+
+/**
+ * PlacesController - Main REST API controller for the Foursquare Places application
+ * 
+ * This controller provides multiple endpoints for location intelligence:
+ * 1. /chat - Legacy non-streaming chat with AI agents
+ * 2. /chat/stream - Streaming chat using Server-Sent Events (SSE)
+ * 3. /search - Parameterized place search
+ * 4. /location - Get location suggestions
+ * 5. /health - Health check endpoint
+ * 6. /examples - Usage examples for the API
+ * 7. /chat/unified - Intelligent routing endpoint (NEW)
+ * 
+ * The controller acts as the entry point for all HTTP requests and delegates
+ * business logic to the PlacesService.
+ */
 export class PlacesController {
   /**
    * Constructor - Injects the PlacesService for handling business logic
    * @param placesService - Service containing all business logic for places operations
    */
-  constructor(private readonly placesService: PlacesService) {}
+  constructor(private readonly placesService: PlacesService) { }
 
   @Get('health')
   @ApiOperation({
@@ -184,6 +200,69 @@ export class PlacesController {
       const message = error instanceof Error ? error.message : 'Unknown error';
       throw new HttpException(
         `Retail analysis failed: ${message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Supply Chain Agent - Optimizing Logistics Networks
+   */
+  @Post('supply-chain')
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @ApiOperation({
+    summary: 'Supply Chain & Logistics Optimization',
+    description: 'Analyze distribution networks, optimize warehouse locations, and enhance supply chain efficiency using Foursquare Places API'
+  })
+  @ApiBody({
+    type: UnifiedChatDto,
+    description: 'Query for supply chain and logistics analysis',
+    examples: {
+      'warehouse-analysis': {
+        summary: 'Warehouse location analysis',
+        value: {
+          message: 'Find optimal warehouse locations near major highways in Texas with rail access',
+          sessionId: 'supply-chain-session-1',
+          responsePreference: 'analysis'
+        }
+      },
+      'port-connectivity': {
+        summary: 'Port connectivity assessment',
+        value: {
+          message: 'Analyze transportation infrastructure around Port of Los Angeles for import distribution',
+          sessionId: 'logistics-session-2',
+          responsePreference: 'analysis'
+        }
+      },
+      'last-mile-delivery': {
+        summary: 'Last-mile delivery planning',
+        value: {
+          message: 'Identify micro-fulfillment center locations for same-day delivery in Chicago metropolitan area',
+          sessionId: 'delivery-session-3',
+          responsePreference: 'geojson'
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Supply chain analysis results with logistics insights and facility recommendations',
+    type: UnifiedChatResponseDto
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - Invalid supply chain query'
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error during supply chain analysis'
+  })
+  async processSupplyChain(@Body() unifiedChatDto: UnifiedChatDto): Promise<UnifiedChatResponseDto> {
+    try {
+      return await this.placesService.processSupplyChainQuery(unifiedChatDto);
+    } catch (error) {
+      throw new HttpException(
+        `Supply chain analysis failed: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

@@ -121,6 +121,30 @@ export class PlacesService {
     }
   }
 
+  async processSupplyChainQuery(
+    unifiedChatDto: UnifiedChatDto,
+  ): Promise<UnifiedChatResponseDto> {
+    try {
+      this.logger.log(`Processing supply chain query: ${unifiedChatDto.message}`);
+
+      const supplyChainAgent = mastra.getAgent('supplyChainAgent');
+      if (!supplyChainAgent) {
+        throw new Error('Supply Chain Agent not available');
+      }
+
+      const response = await supplyChainAgent.generate(unifiedChatDto.message);
+      return await this.formatAgentResponseDirect(
+        response,
+        'supply-chain',
+        unifiedChatDto.message,
+      );
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Supply chain query failed: ${message}`);
+      return this.formatErrorResponse(error, 'supply-chain');
+    }
+  }
+
   private async formatAgentResponseDirect(
     agentResponse: unknown,
     agentType: string,
