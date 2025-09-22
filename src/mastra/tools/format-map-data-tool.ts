@@ -35,6 +35,10 @@ export const formatMapDataTool = createTool({
     const rawData = context.rawData;
     const features: z.infer<typeof GeoJsonFeatureSchema>[] = [];
 
+    // Debug logging
+    console.log('FormatMapDataTool - Raw data keys:', Object.keys(rawData));
+    console.log('FormatMapDataTool - Raw data type:', typeof rawData);
+
     // Helper to add a feature
     const addFeature = (geometry: any, properties: any = {}) => {
       features.push({
@@ -44,10 +48,43 @@ export const formatMapDataTool = createTool({
       });
     };
 
+    // Process TomTom POI Search results
+    const poiData = rawData['searchPoiTool'] || rawData['search-poi'];
+    console.log('FormatMapDataTool - POI data:', poiData ? 'Found' : 'Not found');
+
+    if (poiData && poiData.results) {
+      console.log('FormatMapDataTool - POI results count:', poiData.results.length);
+      for (const result of poiData.results) {
+        if (result.position && result.position.lat && result.position.lon) {
+          addFeature(
+            {
+              type: 'Point',
+              coordinates: [result.position.lon, result.position.lat],
+            },
+            {
+              name: result.poi?.name || result.address?.freeformAddress,
+              address: result.address?.freeformAddress,
+              category: result.poi?.categories?.[0],
+              phone: result.poi?.phone,
+              url: result.poi?.url,
+              score: result.score,
+              distance: result.dist,
+              source: 'TomTom POI Search',
+            },
+          );
+        }
+      }
+    } else {
+      console.log('FormatMapDataTool - No POI results found or invalid structure');
+    }
+
     // Process TomTom Fuzzy Search results
     const tomtomData =
       rawData['tomtomFuzzySearchTool'] || rawData['tomtom-fuzzy-search'];
+    console.log('FormatMapDataTool - TomTom data:', tomtomData ? 'Found' : 'Not found');
+
     if (tomtomData && tomtomData.results) {
+      console.log('FormatMapDataTool - TomTom results count:', tomtomData.results.length);
       for (const result of tomtomData.results) {
         if (result.position && result.position.lat && result.position.lon) {
           addFeature(
@@ -59,11 +96,17 @@ export const formatMapDataTool = createTool({
               name: result.poi?.name || result.address?.freeformAddress,
               address: result.address?.freeformAddress,
               category: result.poi?.categories?.[0],
+              phone: result.poi?.phone,
+              url: result.poi?.url,
+              score: result.score,
+              distance: result.dist,
               source: 'TomTom Fuzzy Search',
             },
           );
         }
       }
+    } else {
+      console.log('FormatMapDataTool - No TomTom results found or invalid structure');
     }
 
     // Process Google Place Details results

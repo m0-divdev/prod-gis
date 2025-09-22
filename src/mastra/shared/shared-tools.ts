@@ -5,8 +5,8 @@ import { summarizeTool } from '../tools/summarizer-tool';
 
 // Core geospatial tools shared across agents
 import { tomtomFuzzySearchTool } from '../tools/tomtom-fuzzy-search-tool';
+import { searchPoiTool } from '../tools/tomtom-poi-search-tool';
 import {
-  searchPoiTool,
   getPlaceByIdTool,
   getPoiPhotosTool,
 } from '../tools/tomtom-tool';
