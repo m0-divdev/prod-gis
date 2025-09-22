@@ -14,6 +14,59 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  BANNED
+}
+
+model User {
+  id            String         @id @default(cuid())
+  walletAddress String         @unique
+  username      String?
+  status        UserStatus     @default(ACTIVE)
+  credits       Credits?
+  refreshTokens RefreshToken[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([walletAddress])
+  @@index([status])
+}
+
+model Credits {
+  id               String  @id @default(cuid())
+  user             User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId           String  @unique
+  availableCredits Float   @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String   // Removed @unique to allow multiple tokens per user
+  token     String   @unique
+  deviceId  String?  // Optional device identifier for session management
+  userAgent String?  // Optional user agent for session tracking
+  ipAddress String?  // Optional IP address for security monitoring
+  isRevoked Boolean  @default(false) // For token revocation
+  expiresAt DateTime
+  lastUsed  DateTime? // Track when token was last used
+  updatedAt DateTime @updatedAt
+
+  createdAt DateTime @default(now())
+
+  @@index([token])
+  @@index([expiresAt])
+  @@index([userId])
+  @@index([isRevoked])
+}
+
 model Place {
   id        Int      @id @default(autoincrement())
   fsq_id    String   @unique

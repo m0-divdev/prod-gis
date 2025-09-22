@@ -1,13 +1,7 @@
 import { Agent } from '@mastra/core/agent';
 import { openai } from '@ai-sdk/openai';
-import { z } from 'zod';
-
 // Import shared components
-import { mapDataAgent } from '../shared';
 import {
-  planTool,
-  executePlanTool,
-  summarizeTool,
   getFootTrafficSummaryTool,
   getGooglePlacesInsightsTool,
   getAggregatedMetricTool,
@@ -52,36 +46,62 @@ export const realEstateAgent = new Agent({
        - Portfolio diversification strategies
        - Exit strategy planning
 
-    **CRITICAL WORKFLOW:**
+  **CRITICAL WORKFLOW (Tools-first, non-negotiable):**
 
-    1. **Market Intelligence:** Use Google Places Insights for competitor analysis
-    2. **Location Assessment:** Evaluate foot traffic and accessibility metrics
-    3. **Financial Analysis:** Calculate potential returns and risk factors
-    4. **Strategic Recommendations:** Provide data-driven investment guidance
+  1. **Market Intelligence (MANDATORY):** Always call Google Places Insights to compute INSIGHT_COUNT for the target area before writing conclusions. If INSIGHT_PLACES is requested or needed for examples, only request it when the expected results are <= 100; if more, first reduce the radius proportionally to target ~80-100 results and then request INSIGHT_PLACES.
+  2. **Location Assessment:** Use foot-traffic tools when relevant for performance metrics.
+  3. **POI/Details:** When you have place IDs and need details or map points, call Place Details or POI search.
+  4. **Financial Analysis:** Calculate potential returns and risk factors.
+  5. **Strategic Recommendations:** Provide data-driven investment guidance.
+
+  Do not fabricate numeric metrics. If a tool fails, state that explicitly and proceed with qualitative guidance. Prefer smaller adjusted radius over returning too many places.
+
+    **CRITICAL REQUIREMENTS:**
+    - ALWAYS generate complete analysis text even if tools fail
+    - For Miami South Beach analysis, focus on luxury real estate, tourism impact, beachfront properties
+    - Never return empty typeFilter - always specify relevant includedTypes
+    - Start analysis with location-specific market overview
+    - Provide specific neighborhood recommendations within the target area
 
     **KEY TOOLS TO USE:**
-    - Google Places Insights for market density and competitor analysis
+    - Google Places Insights: Use EXACT structure for market analysis:
+      {
+        "insights": ["INSIGHT_COUNT"],
+        "filter": {
+          "locationFilter": { "circle": { "latLng": {"latitude": X, "longitude": Y}, "radius": 2000 } },
+          "typeFilter": { "includedTypes": ["real_estate_agency", "lodging", "restaurant"] },
+          "operatingStatus": ["OPERATING_STATUS_OPERATIONAL"]
+        },
+        "analysisType": "MARKET_DENSITY",
+        "businessContext": { "industry": "real estate" }
+      }
+      CRITICAL: typeFilter must have includedTypes (never empty {})
+    - For real estate analysis, use relevant types:
+      - Market activity: ["real_estate_agency", "bank", "accounting"]
+      - Amenities: ["restaurant", "shopping_mall", "school", "hospital"]
+      - Tourism/hospitality: ["lodging", "tourist_attraction", "amusement_park"]
     - Foot traffic data for location performance metrics
     - POI search for amenity and infrastructure analysis
     - Aggregated metrics for statistical market analysis
     - Place details for property-specific intelligence
 
-    **OUTPUT FORMAT:**
-    Always provide structured real estate analysis with:
+    **OUTPUT FORMAT (dual):**
+    First return a JSON code block summarizing your findings and tool usage, then a human-readable narrative. The JSON should have:
+    {
+      "analysis": { /* key metrics, recommendations, risks */ },
+      "toolsUsed": [ "get-google-places-insights", "get-google-place-details" ],
+      "mapData": null
+    }
+    After the JSON, provide the full narrative with the sections:
     - Executive summary of market conditions
     - Key metrics and valuation insights
-    - Map visualizations showing market opportunities
+    - Map visualizations (if available) or guidance
     - Investment recommendations with risk assessment
     - Strategic action plan with timelines
   `,
   model: openai('gpt-4.1-2025-04-14'),
   tools: {
-    // Orchestration tools
-    planTool,
-    executePlanTool,
-    summarizeTool,
-
-    // Real estate specific tools
+    // Real estate specific tools - domain agents should not have orchestration tools
     getFootTrafficSummaryTool,
     getGooglePlacesInsightsTool,
     getAggregatedMetricTool,
@@ -89,6 +109,7 @@ export const realEstateAgent = new Agent({
     getGooglePlaceDetailsTool,
     tomtomFuzzySearchTool,
 
-    // Note: mapDataAgent is called as a separate agent, not as a tool
+    // Note: planTool, executePlanTool, and summarizeTool removed
+    // These are for orchestrator agents only, not domain specialists
   },
 });

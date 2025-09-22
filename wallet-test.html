@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wallet Authentication Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 50px auto;
+        padding: 20px;
+      }
+      button {
+        background: #0070f3;
+        color: white;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        margin: 10px 0;
+      }
+      button:hover {
+        background: #0051a2;
+      }
+      .response {
+        background: #f5f5f5;
+        padding: 15px;
+        border-radius: 6px;
+        margin: 10px 0;
+        white-space: pre-wrap;
+      }
+      .error {
+        background: #fee;
+        border: 1px solid #fcc;
+      }
+      .success {
+        background: #efe;
+        border: 1px solid #cfc;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🔐 Wallet Authentication Test</h1>
+    <p>Test your wallet authentication flow with MetaMask</p>
+
+    <div>
+      <h3>Step 1: Connect Wallet</h3>
+      <button onclick="connectWallet()">Connect MetaMask</button>
+      <div id="walletInfo" class="response"></div>
+    </div>
+
+    <div>
+      <h3>Step 2: Get Sign Message</h3>
+      <button onclick="getSignMessage()" disabled id="getMessageBtn">
+        Get Message to Sign
+      </button>
+      <div id="messageResponse" class="response"></div>
+    </div>
+
+    <div>
+      <h3>Step 3: Sign & Login</h3>
+      <button onclick="signAndLogin()" disabled id="loginBtn">
+        Sign Message & Login
+      </button>
+      <div id="loginResponse" class="response"></div>
+    </div>
+
+    <script>
+      let currentAccount = null;
+      let messageToSign = null;
+
+      // Wait for page to load and check MetaMask
+      window.addEventListener('load', async () => {
+        await checkMetaMask();
+      });
+
+      async function checkMetaMask() {
+        const walletInfo = document.getElementById('walletInfo');
+
+        if (typeof window.ethereum !== 'undefined') {
+          walletInfo.innerText =
+            '✅ MetaMask detected! Click "Connect MetaMask" to continue.';
+          walletInfo.className = 'response success';
+        } else {
+          walletInfo.innerText =
+            "❌ MetaMask not detected. Please:\n1. Install MetaMask extension\n2. Refresh this page\n3. Make sure you're accessing via http:// (not file://)";
+          walletInfo.className = 'response error';
+        }
+      }
+
+      async function connectWallet() {
+        try {
+          // Double-check MetaMask availability
+          if (typeof window.ethereum === 'undefined') {
+            throw new Error(
+              'MetaMask is not installed. Please install MetaMask and refresh the page.',
+            );
+          }
+
+          // Request account access
+          const accounts = await window.ethereum.request({
+            method: 'eth_requestAccounts',
+          });
+
+          if (accounts.length === 0) {
+            throw new Error('No accounts found. Please unlock MetaMask.');
+          }
+
+          currentAccount = accounts[0];
+          // Store the wallet address in lowercase for consistency
+          currentAccount = currentAccount.toLowerCase();
+          document.getElementById('walletInfo').innerText =
+            `✅ Connected successfully!\nWallet: ${currentAccount}`;
+          document.getElementById('walletInfo').className = 'response success';
+          document.getElementById('getMessageBtn').disabled = false;
+        } catch (error) {
+          console.error('Connection error:', error);
+          document.getElementById('walletInfo').innerText =
+            `❌ Connection failed: ${error.message}`;
+          document.getElementById('walletInfo').className = 'response error';
+        }
+      }
+
+      async function getSignMessage() {
+        try {
+          const response = await fetch(
+            `http://localhost:4000/api/user/sign-message?walletAddress=${currentAccount}`,
+          );
+          const data = await response.json();
+
+          if (response.ok) {
+            messageToSign = data.msg;
+            document.getElementById('messageResponse').innerText =
+              `Message to sign:\n${JSON.stringify(data, null, 2)}`;
+            document.getElementById('messageResponse').className =
+              'response success';
+            document.getElementById('loginBtn').disabled = false;
+          } else {
+            throw new Error(data.message || 'Failed to get message');
+          }
+        } catch (error) {
+          document.getElementById('messageResponse').innerText =
+            `Error: ${error.message}`;
+          document.getElementById('messageResponse').className =
+            'response error';
+        }
+      }
+
+      async function signAndLogin() {
+        try {
+          document.getElementById('loginResponse').innerText =
+            '⏳ Signing message...';
+          document.getElementById('loginResponse').className = 'response';
+
+          // Sign the message with MetaMask
+          const signature = await window.ethereum.request({
+            method: 'personal_sign',
+            params: [messageToSign, currentAccount],
+          });
+
+          document.getElementById('loginResponse').innerText =
+            '⏳ Verifying signature...';
+
+          // Small delay to ensure cache is still valid
+          await new Promise((resolve) => setTimeout(resolve, 500));
+
+          // Send login request
+          const response = await fetch('http://localhost:4000/api/user/login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              walletAddress: currentAccount,
+              signature: signature,
+            }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            document.getElementById('loginResponse').innerText =
+              `🎉 Login Success!\n${JSON.stringify(data, null, 2)}`;
+            document.getElementById('loginResponse').className =
+              'response success';
+          } else {
+            throw new Error(data.message || 'Login failed');
+          }
+        } catch (error) {
+          console.error('Login error:', error);
+          document.getElementById('loginResponse').innerText =
+            `❌ Login failed: ${error.message}\n\n💡 Try getting a new message if this keeps happening.`;
+          document.getElementById('loginResponse').className = 'response error';
+        }
+      }
+    </script>
+  </body>
+</html>

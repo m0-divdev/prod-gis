@@ -1,13 +1,7 @@
 import { Agent } from '@mastra/core/agent';
 import { openai } from '@ai-sdk/openai';
-import { z } from 'zod';
-
 // Import shared components
-import { mapDataAgent } from '../shared';
 import {
-  planTool,
-  executePlanTool,
-  summarizeTool,
   getFootTrafficSummaryTool,
   getWeatherTool,
   searchEventsTool,
@@ -103,12 +97,7 @@ export const urbanPlanningAgent = new Agent({
   `,
   model: openai('gpt-4.1-2025-04-14'),
   tools: {
-    // Orchestration tools
-    planTool,
-    executePlanTool,
-    summarizeTool,
-
-    // Urban planning specific tools
+    // Urban planning specific tools - domain agents should not have orchestration tools
     getFootTrafficSummaryTool,
     getWeatherTool,
     searchEventsTool,
@@ -117,6 +106,7 @@ export const urbanPlanningAgent = new Agent({
     getIpLocationTool,
     tomtomFuzzySearchTool,
 
-    // Note: mapDataAgent is called as a separate agent, not as a tool
+    // Note: planTool, executePlanTool, and summarizeTool removed
+    // These are for orchestrator agents only, not domain specialists
   },
 });
