@@ -5,7 +5,11 @@ import { summarizeTool } from '../tools/summarizer-tool';
 
 // Core geospatial tools shared across agents
 import { tomtomFuzzySearchTool } from '../tools/tomtom-fuzzy-search-tool';
-import { searchPoiTool, getPlaceByIdTool, getPoiPhotosTool } from '../tools/tomtom-tool';
+import {
+  searchPoiTool,
+  getPlaceByIdTool,
+  getPoiPhotosTool,
+} from '../tools/tomtom-tool';
 import { getGooglePlaceDetailsTool } from '../tools/google-place-details-tool';
 import { getGooglePlacesInsightsTool } from '../tools/google-places-insights-tool';
 import { searchEventsTool } from '../tools/events-tool';

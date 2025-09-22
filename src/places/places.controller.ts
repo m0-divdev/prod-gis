@@ -11,15 +11,7 @@ import {
 } from '@nestjs/common';
 
 // Swagger/OpenAPI imports for API documentation
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBody,
-  ApiQuery,
-} from '@nestjs/swagger';
-
-// Express Response removed - no streaming endpoints
+import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 
 // Import the main business logic service
 import { PlacesService } from './places.service';
@@ -33,7 +25,6 @@ import {
 
 // Swagger tag for grouping all endpoints under "Places" in API docs
 @ApiTags('Places')
-
 // Define the base route for all endpoints in this controller
 @Controller('places')
 
@@ -59,14 +50,6 @@ export class PlacesController {
    */
   constructor(private readonly placesService: PlacesService) { }
 
-  // Legacy chat endpoint removed - only unified chat needed
-
-  // Streaming chat endpoint removed - only unified chat needed
-
-  // Search endpoint removed - unified chat handles all queries
-
-  // Location endpoint removed - unified chat handles all queries
-
   @Get('health')
   @ApiOperation({
     summary: 'Health Check',
@@ -83,70 +66,6 @@ export class PlacesController {
       timestamp: new Date().toISOString(),
     };
   }
-
-  // Examples endpoint removed - unified chat handles all queries
-
-  /**
-   * POST /api/places/chat/unified - Intelligent Unified Chat Endpoint
-   * 
-   * This is the most advanced endpoint that intelligently analyzes user queries
-   * and automatically determines the best response format:
-   * 
-   * Response Types:
-   * - 'text': Regular conversational responses
-   * - 'geojson': Map data for location-based queries
-   * - 'analysis': Statistical/analytical data
-   * 
-   * Intelligence Flow:
-   * 1. Analyze user query for intent (map, analysis, or general)
-   * 2. Route to appropriate service:
-   *    - MapDataService for location/map queries → GeoJSON
-   *    - OrchestratorService for analysis queries → structured data
-   *    - Default to text responses for general queries
-   * 3. Return response with metadata about processing
-   * 
-   * This endpoint replaces the need for multiple specialized endpoints
-   * by providing intelligent routing based on query content.
-   * 
-   * @param unifiedChatDto - Contains message, sessionId, and response preference
-   * @returns UnifiedChatResponseDto with intelligent response type and metadata
-   */
-  @Post('chat/unified')
-  @ApiOperation({
-    summary:
-      'Unified Chat Endpoint - Intelligently Routes to Appropriate Services',
-    description:
-      'Single endpoint that analyzes user queries and automatically returns text, GeoJSON, or analysis data based on content. This is the ultimate chatbot endpoint that handles all query types intelligently.',
-  })
-  @ApiBody({ type: UnifiedChatDto })
-  @ApiResponse({
-    status: 200,
-    description: 'Successfully processed the unified chat request',
-    type: UnifiedChatResponseDto,
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad request - Invalid input',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal server error',
-  })
-  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
-  async processUnifiedChat(
-    @Body() unifiedChatDto: UnifiedChatDto,
-  ): Promise<UnifiedChatResponseDto> {
-    try {
-      // Delegate to service for intelligent query processing and routing
-      return await this.placesService.processUnifiedChat(unifiedChatDto);
-    } catch (error: any) {
-      throw new HttpException(
-        error instanceof Error ? error.message : 'Internal server error',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
   /**
    * Specialized Agent Endpoints
    * Direct endpoints for domain-specific AI agents
@@ -159,23 +78,27 @@ export class PlacesController {
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({
     summary: 'Urban Planning & Smart Cities Analysis',
-    description: 'Analyze urban environments for community planning, infrastructure optimization, and sustainable development'
+    description:
+      'Analyze urban environments for community planning, infrastructure optimization, and sustainable development',
   })
   @ApiBody({
     type: UnifiedChatDto,
-    description: 'Query for urban planning analysis'
+    description: 'Query for urban planning analysis',
   })
   @ApiResponse({
     status: 200,
     description: 'Urban planning analysis results',
-    type: UnifiedChatResponseDto
+    type: UnifiedChatResponseDto,
   })
-  async processUrbanPlanning(@Body() unifiedChatDto: UnifiedChatDto): Promise<UnifiedChatResponseDto> {
+  async processUrbanPlanning(
+    @Body() unifiedChatDto: UnifiedChatDto,
+  ): Promise<UnifiedChatResponseDto> {
     try {
       return await this.placesService.processUrbanPlanningQuery(unifiedChatDto);
-    } catch (error) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
       throw new HttpException(
-        `Urban planning analysis failed: ${error.message}`,
+        `Urban planning analysis failed: ${message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -188,23 +111,27 @@ export class PlacesController {
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({
     summary: 'Real Estate & Land Use Analysis',
-    description: 'Analyze property markets, land use optimization, and investment opportunities'
+    description:
+      'Analyze property markets, land use optimization, and investment opportunities',
   })
   @ApiBody({
     type: UnifiedChatDto,
-    description: 'Query for real estate analysis'
+    description: 'Query for real estate analysis',
   })
   @ApiResponse({
     status: 200,
     description: 'Real estate analysis results',
-    type: UnifiedChatResponseDto
+    type: UnifiedChatResponseDto,
   })
-  async processRealEstate(@Body() unifiedChatDto: UnifiedChatDto): Promise<UnifiedChatResponseDto> {
+  async processRealEstate(
+    @Body() unifiedChatDto: UnifiedChatDto,
+  ): Promise<UnifiedChatResponseDto> {
     try {
       return await this.placesService.processRealEstateQuery(unifiedChatDto);
-    } catch (error) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
       throw new HttpException(
-        `Real estate analysis failed: ${error.message}`,
+        `Real estate analysis failed: ${message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -217,23 +144,29 @@ export class PlacesController {
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({
     summary: 'Energy & Utilities Spatial Analysis',
-    description: 'Optimize energy infrastructure, utility networks, and renewable energy placement'
+    description:
+      'Optimize energy infrastructure, utility networks, and renewable energy placement',
   })
   @ApiBody({
     type: UnifiedChatDto,
-    description: 'Query for energy/utilities analysis'
+    description: 'Query for energy/utilities analysis',
   })
   @ApiResponse({
     status: 200,
     description: 'Energy/utilities analysis results',
-    type: UnifiedChatResponseDto
+    type: UnifiedChatResponseDto,
   })
-  async processEnergyUtilities(@Body() unifiedChatDto: UnifiedChatDto): Promise<UnifiedChatResponseDto> {
+  async processEnergyUtilities(
+    @Body() unifiedChatDto: UnifiedChatDto,
+  ): Promise<UnifiedChatResponseDto> {
     try {
-      return await this.placesService.processEnergyUtilitiesQuery(unifiedChatDto);
-    } catch (error) {
+      return await this.placesService.processEnergyUtilitiesQuery(
+        unifiedChatDto,
+      );
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
       throw new HttpException(
-        `Energy/utilities analysis failed: ${error.message}`,
+        `Energy/utilities analysis failed: ${message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -246,23 +179,27 @@ export class PlacesController {
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({
     summary: 'Retail Location Optimization',
-    description: 'Analyze retail markets, optimize store locations, and maximize sales potential'
+    description:
+      'Analyze retail markets, optimize store locations, and maximize sales potential',
   })
   @ApiBody({
     type: UnifiedChatDto,
-    description: 'Query for retail analysis'
+    description: 'Query for retail analysis',
   })
   @ApiResponse({
     status: 200,
     description: 'Retail analysis results',
-    type: UnifiedChatResponseDto
+    type: UnifiedChatResponseDto,
   })
-  async processRetail(@Body() unifiedChatDto: UnifiedChatDto): Promise<UnifiedChatResponseDto> {
+  async processRetail(
+    @Body() unifiedChatDto: UnifiedChatDto,
+  ): Promise<UnifiedChatResponseDto> {
     try {
       return await this.placesService.processRetailQuery(unifiedChatDto);
-    } catch (error) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
       throw new HttpException(
-        `Retail analysis failed: ${error.message}`,
+        `Retail analysis failed: ${message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

@@ -1,6 +1,5 @@
 import { Mastra } from '@mastra/core/mastra';
 import { PinoLogger } from '@mastra/loggers';
-import { LibSQLStore } from '@mastra/libsql';
 
 // Import specialized agents
 import { urbanPlanningAgent } from './agents/urban-planning-agent';

@@ -1,4 +1,10 @@
-import { IsString, IsOptional, IsNumber, IsArray, ValidateNested } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsNumber,
+  IsArray,
+  ValidateNested,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { z } from 'zod';
@@ -22,18 +28,29 @@ export const GeoJSONFeatureCollectionSchema = z.object({
 
 export const MapDataQuerySchema = z.object({
   query: z.string().describe('Query for geospatial data'),
-  bounds: z.object({
-    north: z.number(),
-    south: z.number(),
-    east: z.number(),
-    west: z.number(),
-  }).optional().describe('Geographic bounds for the search'),
-  center: z.object({
-    lat: z.number(),
-    lon: z.number(),
-  }).optional().describe('Center point for the search'),
+  bounds: z
+    .object({
+      north: z.number(),
+      south: z.number(),
+      east: z.number(),
+      west: z.number(),
+    })
+    .optional()
+    .describe('Geographic bounds for the search'),
+  center: z
+    .object({
+      lat: z.number(),
+      lon: z.number(),
+    })
+    .optional()
+    .describe('Center point for the search'),
   radius: z.number().optional().describe('Search radius in meters'),
-  maxResults: z.number().min(1).max(100).optional().describe('Maximum number of results'),
+  maxResults: z
+    .number()
+    .min(1)
+    .max(100)
+    .optional()
+    .describe('Maximum number of results'),
 });
 
 export const MapDataResponseSchema = z.object({
@@ -180,7 +197,10 @@ export class MapDataMetadata {
   @ApiProperty({ description: 'Total number of features in the collection' })
   totalFeatures: number;
 
-  @ApiProperty({ description: 'Geographic bounds of the data', type: BoundsDto })
+  @ApiProperty({
+    description: 'Geographic bounds of the data',
+    type: BoundsDto,
+  })
   bounds: BoundsDto;
 
   @ApiProperty({

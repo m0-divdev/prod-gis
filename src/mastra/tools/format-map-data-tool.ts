@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/require-await */
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 
@@ -18,11 +19,18 @@ const GeoJsonFeatureCollectionSchema = z.object({
 
 export const formatMapDataTool = createTool({
   id: 'format-map-data',
-  description: 'Consolidates raw geospatial data from various tool outputs into a single GeoJSON FeatureCollection.',
+  description:
+    'Consolidates raw geospatial data from various tool outputs into a single GeoJSON FeatureCollection.',
   inputSchema: z.object({
-    rawData: z.record(z.any()).describe('A JSON object containing raw results from executed geospatial tool calls.')
+    rawData: z
+      .record(z.any())
+      .describe(
+        'A JSON object containing raw results from executed geospatial tool calls.',
+      ),
   }),
-  outputSchema: GeoJsonFeatureCollectionSchema.describe('A GeoJSON FeatureCollection object containing all identified geospatial features.'),
+  outputSchema: GeoJsonFeatureCollectionSchema.describe(
+    'A GeoJSON FeatureCollection object containing all identified geospatial features.',
+  ),
   execute: async ({ context }) => {
     const rawData = context.rawData;
     const features: z.infer<typeof GeoJsonFeatureSchema>[] = [];
@@ -37,7 +45,8 @@ export const formatMapDataTool = createTool({
     };
 
     // Process TomTom Fuzzy Search results
-    const tomtomData = rawData['tomtomFuzzySearchTool'] || rawData['tomtom-fuzzy-search'];
+    const tomtomData =
+      rawData['tomtomFuzzySearchTool'] || rawData['tomtom-fuzzy-search'];
     if (tomtomData && tomtomData.results) {
       for (const result of tomtomData.results) {
         if (result.position && result.position.lat && result.position.lon) {
@@ -51,17 +60,23 @@ export const formatMapDataTool = createTool({
               address: result.address?.freeformAddress,
               category: result.poi?.categories?.[0],
               source: 'TomTom Fuzzy Search',
-            }
+            },
           );
         }
       }
     }
 
     // Process Google Place Details results
-    const googlePlaceData = rawData['getGooglePlaceDetailsTool'] || rawData['get-google-place-details'];
+    const googlePlaceData =
+      rawData['getGooglePlaceDetailsTool'] ||
+      rawData['get-google-place-details'];
     if (googlePlaceData && googlePlaceData.result) {
       const place = googlePlaceData.result;
-      if (place.location && place.location.latitude && place.location.longitude) {
+      if (
+        place.location &&
+        place.location.latitude &&
+        place.location.longitude
+      ) {
         addFeature(
           {
             type: 'Point',
@@ -73,7 +88,7 @@ export const formatMapDataTool = createTool({
             rating: place.rating,
             priceLevel: place.priceLevel,
             source: 'Google Place Details',
-          }
+          },
         );
       }
     }
@@ -81,20 +96,13 @@ export const formatMapDataTool = createTool({
     // Process Google Places Insights results (if it returns place IDs, you might need to fetch details)
     // For simplicity, this tool assumes it gets enough info to create a point.
     // In a real scenario, if insights only give IDs, you'd need another tool call to get details.
-    const googleInsightsData = rawData['getGooglePlacesInsightsTool'] || rawData['get-google-places-insights'];
+    const googleInsightsData =
+      rawData['getGooglePlacesInsightsTool'] ||
+      rawData['get-google-places-insights'];
     if (googleInsightsData && googleInsightsData.places) {
-      // This part is tricky. get-google-places-insights only returns place IDs.
-      // To get coordinates, you'd typically need to call get-google-place-details for each ID.
-      // For this tool, we'll assume the rawData might contain pre-fetched details or
-      // we'll just add a placeholder if only IDs are available.
-      for (const placeId of googleInsightsData.places) {
-        // If the rawData also contains details for this placeId, use them
-        // Otherwise, just add a feature with the ID
-        addFeature(
-          { type: 'Point', coordinates: [0, 0] }, // Placeholder coordinates
-          { placeId: placeId, source: 'Google Places Insights (ID only)' }
-        );
-      }
+      // Insights often returns only place IDs without coordinates.
+      // To avoid fabricating map pins, we SKIP adding features for ID-only entries here.
+      // If coordinates are desired, pair insights IDs with Google Place Details in rawData first.
     }
 
     // Process searchEventsTool results
@@ -113,14 +121,15 @@ export const formatMapDataTool = createTool({
               start: event.start,
               end: event.end,
               source: 'PredictHQ Events',
-            }
+            },
           );
         }
       }
     }
 
     // Add more processing for other geospatial tools as needed (e.g., IP location)
-    const ipLocationData = rawData['getIpLocationTool'] || rawData['get-ip-location'];
+    const ipLocationData =
+      rawData['getIpLocationTool'] || rawData['get-ip-location'];
     if (ipLocationData && ipLocationData.latitude && ipLocationData.longitude) {
       addFeature(
         {
@@ -130,12 +139,12 @@ export const formatMapDataTool = createTool({
         {
           city: ipLocationData.city,
           source: 'IP Location',
-        }
+        },
       );
     }
 
     // Process searchPoiTool results
-    const searchPoiData = rawData['searchPoiTool'];
+    const searchPoiData = rawData['searchPoiTool'] || rawData['search-poi'];
     if (searchPoiData && searchPoiData.results) {
       for (const result of searchPoiData.results) {
         if (result.position && result.position.lat && result.position.lon) {
@@ -149,14 +158,15 @@ export const formatMapDataTool = createTool({
               address: result.address?.freeformAddress,
               category: result.poi?.categories?.[0],
               source: 'TomTom POI Search',
-            }
+            },
           );
         }
       }
     }
 
     // Process getPlaceByIdTool results
-    const placeByIdData = rawData['getPlaceByIdTool'];
+    const placeByIdData =
+      rawData['getPlaceByIdTool'] || rawData['get-place-by-id'];
     if (placeByIdData && placeByIdData.position) {
       addFeature(
         {
@@ -164,68 +174,14 @@ export const formatMapDataTool = createTool({
           coordinates: [placeByIdData.position.lon, placeByIdData.position.lat],
         },
         {
-          name: placeByIdData.poi?.name || placeByIdData.address?.freeformAddress,
+          name:
+            placeByIdData.poi?.name || placeByIdData.address?.freeformAddress,
           address: placeByIdData.address?.freeformAddress,
           category: placeByIdData.poi?.categories?.[0],
           source: 'TomTom Place Details',
-        }
-      );
-    }
-
-    // Process Foursquare Places Search results
-    const foursquarePlacesData = rawData['foursquarePlacesSearchTool'] || rawData['foursquare-places-search'];
-    if (foursquarePlacesData && foursquarePlacesData.results) {
-      for (const result of foursquarePlacesData.results) {
-        if (result.latitude && result.longitude) {
-          addFeature(
-            {
-              type: 'Point',
-              coordinates: [result.longitude, result.latitude],
-            },
-            {
-              fsq_place_id: result.fsq_place_id,
-              name: result.name,
-              address: result.location?.formatted_address || result.location?.address,
-              categories: result.categories?.map((cat: any) => cat.name).join(', '),
-              rating: result.rating,
-              website: result.website,
-              tel: result.tel,
-              hours: result.hours?.display,
-              distance: result.distance,
-              source: 'Foursquare Places Search',
-            }
-          );
-        }
-      }
-    }
-
-    // Process Foursquare Place Details results
-    const foursquarePlaceDetailsData = rawData['foursquarePlaceDetailsTool'] || rawData['foursquare-place-details'];
-    if (foursquarePlaceDetailsData && foursquarePlaceDetailsData.latitude && foursquarePlaceDetailsData.longitude) {
-      const place = foursquarePlaceDetailsData;
-      addFeature(
-        {
-          type: 'Point',
-          coordinates: [place.longitude, place.latitude],
         },
-        {
-          fsq_place_id: place.fsq_place_id,
-          name: place.name,
-          address: place.location?.formatted_address || place.location?.address,
-          categories: place.categories?.map((cat: any) => cat.name).join(', '),
-          rating: place.rating,
-          website: place.website,
-          tel: place.tel,
-          email: place.email,
-          hours: place.hours?.display,
-          description: place.description,
-          features: place.features,
-          social_media: place.social_media,
-          source: 'Foursquare Place Details',
-        }
       );
     }
-
 
     // Calculate bounds and center for Mapbox
     const bounds = calculateBounds(features);
@@ -238,9 +194,15 @@ export const formatMapDataTool = createTool({
       center: center,
       metadata: {
         totalFeatures: features.length,
-        sources: [...new Set(features.map(f => f.properties?.source).filter(Boolean))],
-        generatedAt: new Date().toISOString()
-      }
+        sources: Array.from(
+          new Set(
+            features
+              .map((f) => (f.properties?.source as string | undefined) || '')
+              .filter((s) => !!s),
+          ),
+        ),
+        generatedAt: new Date().toISOString(),
+      },
     };
   },
 });
@@ -249,12 +211,20 @@ export const formatMapDataTool = createTool({
 function calculateBounds(features: any[]): any {
   if (!features || features.length === 0) return null;
 
-  let minLat = Infinity, maxLat = -Infinity;
-  let minLon = Infinity, maxLon = -Infinity;
+  let minLat = Infinity,
+    maxLat = -Infinity;
+  let minLon = Infinity,
+    maxLon = -Infinity;
 
-  features.forEach(feature => {
+  features.forEach((feature) => {
     if (feature.geometry?.type === 'Point') {
-      const [lon, lat] = feature.geometry.coordinates;
+      const [lonRaw, latRaw] = feature.geometry.coordinates as [
+        unknown,
+        unknown,
+      ];
+      const lon = Number(lonRaw);
+      const lat = Number(latRaw);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
       minLat = Math.min(minLat, lat);
       maxLat = Math.max(maxLat, lat);
       minLon = Math.min(minLon, lon);
@@ -268,16 +238,18 @@ function calculateBounds(features: any[]): any {
     north: maxLat,
     south: minLat,
     east: maxLon,
-    west: minLon
+    west: minLon,
   };
 }
 
 function calculateCenter(features: any[]): any {
   if (!features || features.length === 0) return null;
 
-  let totalLat = 0, totalLon = 0, count = 0;
+  let totalLat = 0,
+    totalLon = 0,
+    count = 0;
 
-  features.forEach(feature => {
+  features.forEach((feature) => {
     if (feature.geometry?.type === 'Point') {
       const [lon, lat] = feature.geometry.coordinates;
       totalLat += lat;
@@ -290,6 +262,6 @@ function calculateCenter(features: any[]): any {
 
   return {
     lat: totalLat / count,
-    lon: totalLon / count
+    lon: totalLon / count,
   };
 }

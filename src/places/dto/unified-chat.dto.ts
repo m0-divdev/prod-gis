@@ -125,7 +125,7 @@ export class UnifiedChatResponseDto {
 
 // Zod schemas for validation
 
-// Unified Chat Input Validation, Used in processUnifiedChat service
+// Unified Chat Input Validation used by specialized agent endpoints
 export const UnifiedChatSchema = z.object({
   message: z.string().min(1, 'Message cannot be empty'),
   sessionId: z.string().optional(),
@@ -136,7 +136,7 @@ export const UnifiedChatSchema = z.object({
   context: z.record(z.any()).optional(),
 });
 
-// Unified Chat Output Validation
+// Unified Chat Output Validation for specialized agent endpoints
 export const UnifiedChatResponseSchema = z.object({
   type: z.nativeEnum(ResponseType),
   data: z.any(),
