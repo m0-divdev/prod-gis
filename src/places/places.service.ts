@@ -48,7 +48,7 @@ export class PlacesService {
     private readonly orchestratorService: OrchestratorService,
     private readonly mapDataService: MapDataService,
     private readonly queryRouter: QueryRouterService,
-  ) {}
+  ) { }
 
   // Search method removed - only unified chat needed
 
@@ -124,17 +124,80 @@ export class PlacesService {
           break;
 
         case ResponseType.ANALYSIS:
-          this.logger.log('Routing to Urban Planning Agent for detailed analysis');
-          // Use urban planning agent for analysis requests as it's the most comprehensive
-          const analysisResult = await this.processUrbanPlanningQuery({
-            message: validatedInput.message,
-            sessionId: validatedInput.sessionId,
-            responsePreference: ResponsePreference.ANALYSIS,
-            context: validatedInput.context,
-          });
+          this.logger.log(`Routing to specialized agent for analysis: ${analysis.type}`);
+          // Route to appropriate specialized agent based on query analysis
+          let analysisResult: UnifiedChatResponseDto;
+
+          switch (analysis.type) {
+            case QueryType.URBAN_PLANNING:
+              analysisResult = await this.processUrbanPlanningQuery({
+                message: validatedInput.message,
+                sessionId: validatedInput.sessionId,
+                responsePreference: ResponsePreference.ANALYSIS,
+                context: validatedInput.context,
+              });
+              agentsUsed = ['urbanPlanningAgent'];
+              toolsUsed = this.getToolsForAgent('urban-planning');
+              break;
+
+            case QueryType.REAL_ESTATE:
+              analysisResult = await this.processRealEstateQuery({
+                message: validatedInput.message,
+                sessionId: validatedInput.sessionId,
+                responsePreference: ResponsePreference.ANALYSIS,
+                context: validatedInput.context,
+              });
+              agentsUsed = ['realEstateAgent'];
+              toolsUsed = this.getToolsForAgent('real-estate');
+              break;
+
+            case QueryType.ENERGY_UTILITIES:
+              analysisResult = await this.processEnergyUtilitiesQuery({
+                message: validatedInput.message,
+                sessionId: validatedInput.sessionId,
+                responsePreference: ResponsePreference.ANALYSIS,
+                context: validatedInput.context,
+              });
+              agentsUsed = ['energyUtilitiesAgent'];
+              toolsUsed = this.getToolsForAgent('energy-utilities');
+              break;
+
+            case QueryType.RETAIL:
+              analysisResult = await this.processRetailQuery({
+                message: validatedInput.message,
+                sessionId: validatedInput.sessionId,
+                responsePreference: ResponsePreference.ANALYSIS,
+                context: validatedInput.context,
+              });
+              agentsUsed = ['retailAgent'];
+              toolsUsed = this.getToolsForAgent('retail');
+              break;
+
+            case QueryType.SUPPLY_CHAIN:
+              analysisResult = await this.processSupplyChainQuery({
+                message: validatedInput.message,
+                sessionId: validatedInput.sessionId,
+                responsePreference: ResponsePreference.ANALYSIS,
+                context: validatedInput.context,
+              });
+              agentsUsed = ['supplyChainAgent'];
+              toolsUsed = this.getToolsForAgent('supply-chain');
+              break;
+
+            default:
+              // Fall back to urban planning agent for comprehensive analysis
+              analysisResult = await this.processUrbanPlanningQuery({
+                message: validatedInput.message,
+                sessionId: validatedInput.sessionId,
+                responsePreference: ResponsePreference.ANALYSIS,
+                context: validatedInput.context,
+              });
+              agentsUsed = ['urbanPlanningAgent'];
+              toolsUsed = this.getToolsForAgent('urban-planning');
+              break;
+          }
+
           responseData = analysisResult.data;
-          agentsUsed = ['urbanPlanningAgent'];
-          toolsUsed = this.getToolsForAgent('urban-planning');
           break;
 
         case ResponseType.TEXT:
@@ -253,6 +316,11 @@ export class PlacesService {
         return ResponseType.GEOJSON;
       case QueryType.ANALYTICS:
       case QueryType.COMPREHENSIVE:
+      case QueryType.URBAN_PLANNING:
+      case QueryType.REAL_ESTATE:
+      case QueryType.ENERGY_UTILITIES:
+      case QueryType.RETAIL:
+      case QueryType.SUPPLY_CHAIN:
         return ResponseType.ANALYSIS;
       default:
         return ResponseType.TEXT;
@@ -361,6 +429,27 @@ export class PlacesService {
   }
 
   /**
+   * Process Supply Chain & Logistics Queries
+   * Routes queries to the specialized supply chain agent for logistics analysis
+   */
+  async processSupplyChainQuery(unifiedChatDto: UnifiedChatDto): Promise<UnifiedChatResponseDto> {
+    try {
+      this.logger.log(`Processing supply chain query: ${unifiedChatDto.message}`);
+
+      const supplyChainAgent = mastra.getAgent('supplyChainAgent');
+      if (!supplyChainAgent) {
+        throw new Error('Supply Chain Agent not available');
+      }
+
+      const response = await supplyChainAgent.generate(unifiedChatDto.message);
+      return this.formatAgentResponseDirect(response, 'supply-chain');
+    } catch (error) {
+      this.logger.error(`Supply chain query failed: ${error}`);
+      return this.formatErrorResponse(error, 'supply-chain');
+    }
+  }
+
+  /**
    * Format agent response directly from agent's output (no coordination service)
    */
   private formatAgentResponseDirect(agentResponse: any, agentType: string): UnifiedChatResponseDto {
@@ -403,8 +492,8 @@ export class PlacesService {
         // Look for map data in tool results
         for (const toolResult of agentResponse.toolResults) {
           if (toolResult.result?.type === 'FeatureCollection' ||
-              toolResult.result?.features ||
-              toolResult.result?.mapData) {
+            toolResult.result?.features ||
+            toolResult.result?.mapData) {
             mapData = toolResult.result.mapData || toolResult.result;
             break;
           }
@@ -414,7 +503,7 @@ export class PlacesService {
       // If still no map data, try to generate basic map data from mentioned locations
       if (!mapData) {
         const locationMatches = responseText.match(/\b\d+\s+[A-Z][a-z]+(?:\s+(?:St|Street|Ave|Avenue|Rd|Road|Blvd|Boulevard|Dr|Drive|Ln|Lane|Way|Ct|Court|Pl|Place))\b/gi) ||
-                               responseText.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\s+(?:Center|Street|Avenue|Road|Boulevard|Drive|Lane|Way|Court|Place))\b/gi);
+          responseText.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\s+(?:Center|Street|Avenue|Road|Boulevard|Drive|Lane|Way|Court|Place))\b/gi);
 
         if (locationMatches && locationMatches.length > 0) {
           // Generate basic map data for mentioned locations
@@ -491,34 +580,100 @@ export class PlacesService {
   private generateBasicMapDataFromText(text: string, locationMatches: string[]): any {
     const features: any[] = [];
 
-    // Try to geocode some of the major locations mentioned
-    const majorLocations = {
-      'Embarcadero Center': { lat: 37.7955, lon: -122.3967 },
-      'Pine Street': { lat: 37.7920, lon: -122.3984 },
-      'Commercial Street': { lat: 37.7942, lon: -122.4037 },
-      'Front Street': { lat: 37.7925, lon: -122.3989 },
-      'Davis Street': { lat: 37.7951, lon: -122.3981 },
-      'Financial District': { lat: 37.7949, lon: -122.4039 },
-    };
+    // Improved location patterns - focus on actual location names
+    const locationPatterns = [
+      // Specific Austin locations from the analysis
+      /\b(Republic Square|Waterloo Park|Duncan Park|Auditorium Shores|Waller Creek|Rainey Street|Congress Ave|Red River Street|East Cesar Chavez|Convention Center|Palm Square Community Center|Arena Hall|Austin Central Library)\b/gi,
 
-    // Create features for known locations
-    Object.entries(majorLocations).forEach(([name, coords], index) => {
-      if (text.toLowerCase().includes(name.toLowerCase())) {
-        features.push({
-          type: 'Feature',
-          geometry: {
-            type: 'Point',
-            coordinates: [coords.lon, coords.lat],
-          },
-          properties: {
-            id: `location-${index}`,
-            name: name,
-            category: 'commercial-property',
-            source: 'text-analysis',
-            confidence: 0.8,
-          },
-        });
+      // Street intersections and addresses
+      /\b(\d+(?:th|rd|st|nd)\s+(?:Street|St|Avenue|Ave|Boulevard|Blvd))\b/gi,
+
+      // Neighborhood and district names
+      /\b(Downtown Austin|Financial District|Central Business District|Entertainment District)\b/gi,
+
+      // Landmark and facility names
+      /\b(Texas Capitol|University of Texas|Lady Bird Lake|I-35|Shoal Creek)\b/gi,
+    ];
+
+    // Words to exclude (not actual locations)
+    const excludeWords = [
+      'downtown', 'central', 'southwest', 'northwest', 'southeast', 'northeast',
+      'area', 'areas', 'location', 'locations', 'site', 'sites', 'place', 'places',
+      'park', 'parks', 'center', 'centers', 'street', 'streets', 'avenue', 'avenues',
+      'development', 'developments', 'community', 'communities', 'facility', 'facilities',
+      'infrastructure', 'transportation', 'amenities', 'services', 'housing', 'buildings',
+      'action', 'actions', 'pilot', 'launch', 'expand', 'improve', 'enhance', 'create',
+      'use', 'uses', 'mixed', 'green', 'public', 'private', 'new', 'existing',
+      'increased', 'improved', 'better', 'enhanced', 'reduced', 'increased',
+      'short', 'medium', 'long', 'term', 'terms', 'implementation', 'timeline',
+      'risk', 'assessment', 'mitigation', 'strategy', 'strategies', 'recommendations',
+      'findings', 'data', 'analysis', 'insights', 'trends', 'patterns', 'statistics',
+      'impact', 'impacts', 'projections', 'goals', 'objectives', 'priorities',
+      'summary', 'table', 'conclusion', 'key', 'major', 'important', 'critical',
+      'focus', 'focusing', 'target', 'targeting', 'priority', 'priorities'
+    ];
+
+    const foundLocations: string[] = [];
+
+    locationPatterns.forEach(pattern => {
+      let match;
+      while ((match = pattern.exec(text)) !== null) {
+        const locationName = match[1] || match.slice(1).join(' ');
+        if (locationName &&
+          locationName.length > 3 &&
+          !foundLocations.includes(locationName) &&
+          !excludeWords.some(word => locationName.toLowerCase().includes(word))) {
+          foundLocations.push(locationName);
+        }
       }
+    });
+
+    // If no specific locations found, try a more targeted extraction
+    if (foundLocations.length === 0) {
+      // Extract proper nouns that might be locations
+      const properNounPattern = /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b/g;
+      let match;
+      while ((match = properNounPattern.exec(text)) !== null) {
+        const potentialLocation = match[1];
+        if (potentialLocation.length > 5 &&
+          potentialLocation.length < 30 &&
+          !excludeWords.some(word => potentialLocation.toLowerCase().includes(word)) &&
+          !foundLocations.includes(potentialLocation)) {
+          foundLocations.push(potentialLocation);
+        }
+      }
+    }
+
+    // Limit to top 10 most relevant locations to avoid rate limiting
+    const topLocations = foundLocations.slice(0, 10);
+
+    // Extract locations using provided patterns - let agent handle intelligence
+    topLocations.forEach((locationName, index) => {
+      // Use default coordinates - agent should provide specific city context
+      const defaultLat = 39.8283; // US geographic center
+      const defaultLon = -98.5795;
+
+      // Simple random distribution within a reasonable area
+      // Agent should override these with specific city coordinates
+      const lat = defaultLat + (Math.random() - 0.5) * 0.1;
+      const lon = defaultLon + (Math.random() - 0.5) * 0.1;
+
+      features.push({
+        type: 'Feature',
+        geometry: {
+          type: 'Point',
+          coordinates: [lon, lat],
+        },
+        properties: {
+          id: `location-${index}`,
+          name: locationName,
+          category: 'location', // Let agent categorize based on context
+          source: 'text-extraction',
+          confidence: 0.5, // Lower confidence since no city context
+          description: `Location extracted from text: ${locationName}`,
+          note: 'Coordinates are generic estimates - agent should provide city-specific coordinates',
+        },
+      });
     });
 
     if (features.length > 0) {
@@ -529,14 +684,38 @@ export class PlacesService {
         center: this.calculateCenter(features),
         metadata: {
           totalFeatures: features.length,
-          sources: ['text-analysis'],
+          sources: ['text-extraction'],
           generatedAt: new Date().toISOString(),
-          note: 'Generated from locations mentioned in analysis',
+          note: 'Generated from specific locations mentioned in urban planning analysis',
+          disclaimer: 'Coordinates are approximate estimates for visualization purposes',
+          extractionMethod: 'improved-pattern-matching',
         },
       };
     }
 
     return null;
+  }
+
+  private categorizeLocation(locationName: string): string {
+    const name = locationName.toLowerCase();
+
+    if (name.includes('park') || name.includes('square') || name.includes('green')) {
+      return 'park';
+    }
+    if (name.includes('center') || name.includes('community') || name.includes('library')) {
+      return 'community-center';
+    }
+    if (name.includes('street') || name.includes('avenue') || name.includes('boulevard')) {
+      return 'street';
+    }
+    if (name.includes('convention') || name.includes('capitol') || name.includes('university')) {
+      return 'landmark';
+    }
+    if (name.includes('lake') || name.includes('creek') || name.includes('river')) {
+      return 'water-feature';
+    }
+
+    return 'location';
   }
 
   /**
@@ -574,6 +753,18 @@ export class PlacesService {
         'searchPoiTool',
         'getGooglePlaceDetailsTool',
         'searchEventsTool',
+        'formatMapDataTool'
+      ],
+      'supply-chain': [
+        'tomtomFuzzySearchTool',
+        'getFootTrafficSummaryTool',
+        'getGooglePlacesInsightsTool',
+        'getAggregatedMetricTool',
+        'searchPoiTool',
+        'getGooglePlaceDetailsTool',
+        'getWeatherTool',
+        'searchEventsTool',
+        'getIpLocationTool',
         'formatMapDataTool'
       ],
     };

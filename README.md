@@ -293,7 +293,7 @@ async function getMapData(userQuery: string) {
     npm install
     # or pnpm install if you use pnpm
     ```
-3.  **Environment Variables:** Copy `.env.example` to `.env` and fill in your API keys for TomTom, Google, PredictHQ, BestTime.app, OpenWeatherMap, and IPstack.
+3.  **Environment Variables:** Copy `.env.example` to `.env` and fill in your API keys for TomTom, Google, PredictHQ, BestTime.app, OpenWeatherMap, IPstack, and Foursquare.
     ```bash
     cp .env.example .env
     ```

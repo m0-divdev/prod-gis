@@ -18,6 +18,7 @@ flowchart TB
             Traffic[Traffic Intelligence Agent]
             Event[Event Intelligence Agent]
             Weather[Weather Intelligence Agent]
+            Supply[Supply Chain Agent]
 
             ToolsF[Foursquare Tools]
             ToolsT[TomTom Tools]
@@ -28,9 +29,12 @@ flowchart TB
             Main --> Traffic
             Main --> Event
             Main --> Weather
+            Main --> Supply
 
             ToolsF --> POI
+            ToolsF --> Supply
             ToolsT --> Traffic
+            ToolsT --> Supply
             ToolsP --> Event
             ToolsW --> Weather
         end

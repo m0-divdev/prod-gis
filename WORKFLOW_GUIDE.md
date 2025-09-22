@@ -301,6 +301,7 @@ PREDICTHQ_API_KEY="your_predicthq_key"
 BESTTIME_API_KEY="your_besttime_key"
 OPENWEATHERMAP_API_KEY="your_weather_key"
 IPSTACK_API_KEY="your_ipstack_key"
+FOURSQUARE_API_KEY="your_foursquare_key"
 ```
 
 ### Running the Application

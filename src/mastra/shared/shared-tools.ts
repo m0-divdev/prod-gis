@@ -19,6 +19,12 @@ import { getFootTrafficTool } from '../tools/foot-traffic-tool';
 // Analytics tools
 import { getAggregatedMetricTool } from '../tools/get-aggregated-metric-tool';
 
+// Foursquare tools for supply chain and logistics
+import { foursquarePlacesSearchTool } from '../tools/foursquare-places-search-tool';
+import { foursquarePlaceDetailsTool } from '../tools/foursquare-place-details-tool';
+import { foursquareCategoresTool } from '../tools/foursquare-categories-tool';
+import { foursquareAutocompleteTool } from '../tools/foursquare-autocomplete-tool';
+
 export const SHARED_TOOLS = {
   // Orchestration tools
   planTool,
@@ -42,6 +48,12 @@ export const SHARED_TOOLS = {
 
   // Analytics tools
   getAggregatedMetricTool,
+
+  // Foursquare tools
+  foursquarePlacesSearchTool,
+  foursquarePlaceDetailsTool,
+  foursquareCategoresTool,
+  foursquareAutocompleteTool,
 };
 
 // Export individual tools for convenience
@@ -61,4 +73,8 @@ export {
   getFootTrafficSummaryTool,
   getFootTrafficTool,
   getAggregatedMetricTool,
+  foursquarePlacesSearchTool,
+  foursquarePlaceDetailsTool,
+  foursquareCategoresTool,
+  foursquareAutocompleteTool,
 };

@@ -10,6 +10,7 @@ export enum QueryType {
   REAL_ESTATE = 'real_estate',
   ENERGY_UTILITIES = 'energy_utilities',
   RETAIL = 'retail',
+  SUPPLY_CHAIN = 'supply_chain',
 }
 
 export interface QueryAnalysis {
@@ -32,7 +33,7 @@ export class QueryRouterService {
 
   analyzeQuery(query: string): QueryAnalysis {
     const lowerQuery = query.toLowerCase();
-    
+
     // Extract entities
     const locations = this.extractLocations(query);
     const categories = this.extractCategories(query);
@@ -89,6 +90,15 @@ export class QueryRouterService {
       'retail space', 'store optimization', 'market penetration', 'trade area'
     ];
 
+    const supplyChainKeywords = [
+      'supply chain', 'logistics', 'warehouse', 'distribution', 'shipping',
+      'freight', 'transportation', 'delivery', 'inventory', 'fulfillment',
+      'distribution center', 'supply network', 'logistics hub', 'cargo',
+      'port', 'airport', 'rail', 'trucking', 'last mile', 'cross dock',
+      'storage facility', 'manufacturing', 'procurement', 'vendor',
+      'supplier', 'import', 'export', 'customs', 'trade route'
+    ];
+
     const mapKeywords = ['map', 'show on map', 'geojson', 'coordinates', 'plot', 'visualize'];
     const analyticsKeywords = ['average', 'count', 'sum', 'how many', 'statistics', 'foot traffic', 'busy'];
     const searchKeywords = ['find', 'search', 'look for', 'locate'];
@@ -110,6 +120,10 @@ export class QueryRouterService {
       return QueryType.RETAIL;
     }
 
+    if (supplyChainKeywords.some(keyword => lowerQuery.includes(keyword))) {
+      return QueryType.SUPPLY_CHAIN;
+    }
+
     // Existing classification logic
     if (mapKeywords.some(keyword => query.includes(keyword))) {
       return QueryType.MAP_DATA_ONLY;
@@ -120,7 +134,7 @@ export class QueryRouterService {
     }
 
     if (searchKeywords.some(keyword => query.includes(keyword)) &&
-        !query.includes('weather') && !query.includes('events')) {
+      !query.includes('weather') && !query.includes('events')) {
       return QueryType.SEARCH_ONLY;
     }
 
@@ -149,6 +163,11 @@ export class QueryRouterService {
       case QueryType.RETAIL:
         agents.push('retailAgent');
         agents.push('mapDataAgent'); // For market analysis
+        break;
+
+      case QueryType.SUPPLY_CHAIN:
+        agents.push('supplyChainAgent');
+        agents.push('mapDataAgent'); // For logistics network analysis
         break;
 
       case QueryType.MAP_DATA_ONLY:
@@ -211,22 +230,22 @@ export class QueryRouterService {
       'restaurant', 'cafe', 'coffee shop', 'hotel', 'gas station',
       'pharmacy', 'hospital', 'bank', 'atm', 'grocery store'
     ];
-    
-    return commonCategories.filter(category => 
+
+    return commonCategories.filter(category =>
       query.toLowerCase().includes(category)
     );
   }
 
   private extractMetrics(query: string): string[] {
     const metricKeywords = ['average', 'count', 'sum', 'max', 'min', 'total'];
-    return metricKeywords.filter(metric => 
+    return metricKeywords.filter(metric =>
       query.toLowerCase().includes(metric)
     );
   }
 
   private extractTimeframes(query: string): string[] {
     const timeKeywords = ['today', 'tomorrow', 'this week', 'weekend', 'next week'];
-    return timeKeywords.filter(time => 
+    return timeKeywords.filter(time =>
       query.toLowerCase().includes(time)
     );
   }
@@ -234,10 +253,10 @@ export class QueryRouterService {
   private requiresMapping(query: string): boolean {
     const mapIndicators = ['map', 'show', 'plot', 'visualize', 'geojson', 'coordinates'];
     const locationBased = this.extractLocations(query).length > 0;
-    const businessAnalysis = ['area', 'around', 'near', 'location', 'suitability', 'competition', 'analyze'].some(keyword => 
+    const businessAnalysis = ['area', 'around', 'near', 'location', 'suitability', 'competition', 'analyze'].some(keyword =>
       query.toLowerCase().includes(keyword)
     );
-    
+
     return mapIndicators.some(indicator => query.includes(indicator)) || locationBased || businessAnalysis;
   }
 

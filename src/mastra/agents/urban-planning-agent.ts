@@ -34,6 +34,27 @@ export const urbanPlanningAgent = new Agent({
     3. Data-driven analysis of current conditions
     4. Strategic development priorities
 
+    **CITY INTELLIGENCE & COORDINATES:**
+    - Always detect the city from analysis text and provide accurate coordinates
+    - Use geocoding tools for precise location data
+    - Override generic service coordinates with city-specific ones
+    - Categorize locations based on urban planning context
+    - Provide realistic geographic bounds for the analyzed city
+
+    **TOOL USAGE GUIDELINES:**
+
+    **getAggregatedMetricTool Usage:**
+    - Only use for counting POI types (e.g., "count" restaurants, cafes, parks)
+    - For average calculations, specify field_to_aggregate (e.g., "score" for ratings)
+    - Avoid queries that TomTom API cannot provide (e.g., population density)
+    - Use realistic search terms that return POI data (restaurants, hotels, parks, etc.)
+
+    **Smart API Usage:**
+    - Limit API calls to prevent rate limiting (max 3-5 per query)
+    - Use geocoding tool for accurate location coordinates
+    - Prefer POI search over fuzzy search for specific locations
+    - Cache results when possible to reduce API calls
+
     **SPECIALIZED CAPABILITIES:**
 
     1. **Community Analysis:**

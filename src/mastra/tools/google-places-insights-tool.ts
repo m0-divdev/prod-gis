@@ -35,7 +35,7 @@ const typeFilterSchema = z.object({
   excludedTypes: z.array(z.string()).optional().describe('Types to exclude'),
   includedPrimaryTypes: z.array(z.string()).optional().describe('Primary business types for focused analysis'),
   excludedPrimaryTypes: z.array(z.string()).optional().describe('Primary types to exclude'),
-}).refine(data => 
+}).refine(data =>
   data.includedTypes?.length || data.includedPrimaryTypes?.length,
   { message: "At least one of includedTypes or includedPrimaryTypes must be specified" }
 );
@@ -49,28 +49,18 @@ const ratingFilterSchema = z.object({
 const BUSINESS_INTELLIGENCE_PRESETS = {
   RETAIL_COMPETITION: {
     includedPrimaryTypes: ['clothing_store', 'electronics_store', 'department_store', 'shopping_mall'],
-    operatingStatus: ['OPERATING_STATUS_OPERATIONAL'],
-    description: 'Analyze retail competition in an area'
   },
   FOOD_SERVICE: {
     includedPrimaryTypes: ['restaurant', 'cafe', 'fast_food_restaurant', 'meal_takeaway'],
-    operatingStatus: ['OPERATING_STATUS_OPERATIONAL'],
-    description: 'Food service business analysis'
   },
   REAL_ESTATE_COMMERCIAL: {
     includedTypes: ['real_estate_agency', 'moving_company', 'storage'],
-    operatingStatus: ['OPERATING_STATUS_OPERATIONAL'],
-    description: 'Commercial real estate services'
   },
   PROFESSIONAL_SERVICES: {
     includedPrimaryTypes: ['lawyer', 'accounting', 'dentist', 'doctor', 'veterinary_care'],
-    operatingStatus: ['OPERATING_STATUS_OPERATIONAL'],
-    description: 'Professional service providers'
   },
   FITNESS_WELLNESS: {
     includedPrimaryTypes: ['gym', 'spa', 'beauty_salon', 'physiotherapist'],
-    operatingStatus: ['OPERATING_STATUS_OPERATIONAL'],
-    description: 'Health and wellness businesses'
   }
 };
 
@@ -91,17 +81,17 @@ export const getGooglePlacesInsightsTool = createTool({
       locationFilter: locationFilterSchema,
       typeFilter: typeFilterSchema,
       operatingStatus: z.array(z.enum([
-        'OPERATING_STATUS_UNSPECIFIED', 
-        'OPERATING_STATUS_OPERATIONAL', 
-        'OPERATING_STATUS_TEMPORARILY_CLOSED', 
+        'OPERATING_STATUS_UNSPECIFIED',
+        'OPERATING_STATUS_OPERATIONAL',
+        'OPERATING_STATUS_TEMPORARILY_CLOSED',
         'OPERATING_STATUS_PERMANENTLY_CLOSED'
-      ])).optional().default(['OPERATING_STATUS_OPERATIONAL']),
+      ])).optional().default(['OPERATING_STATUS_OPERATIONAL']).describe('Operating status filter'),
       priceLevels: z.array(z.enum([
         'PRICE_LEVEL_UNSPECIFIED',
-        'PRICE_LEVEL_FREE', 
-        'PRICE_LEVEL_INEXPENSIVE', 
-        'PRICE_LEVEL_MODERATE', 
-        'PRICE_LEVEL_EXPENSIVE', 
+        'PRICE_LEVEL_FREE',
+        'PRICE_LEVEL_INEXPENSIVE',
+        'PRICE_LEVEL_MODERATE',
+        'PRICE_LEVEL_EXPENSIVE',
         'PRICE_LEVEL_VERY_EXPENSIVE'
       ])).optional(),
       ratingFilter: ratingFilterSchema.optional(),
@@ -147,10 +137,21 @@ export const getGooglePlacesInsightsTool = createTool({
     // Apply business intelligence presets if applicable
     let enhancedFilter = { ...context.filter };
     if (context.businessContext?.industry) {
-      const preset = Object.values(BUSINESS_INTELLIGENCE_PRESETS).find(p => 
-        p.description.toLowerCase().includes(context.businessContext!.industry!.toLowerCase())
-      );
-      if (preset) {
+      // Map industry to preset keys
+      const industryMapping: Record<string, keyof typeof BUSINESS_INTELLIGENCE_PRESETS> = {
+        'retail': 'RETAIL_COMPETITION',
+        'food': 'FOOD_SERVICE',
+        'restaurant': 'FOOD_SERVICE',
+        'commercial real estate': 'REAL_ESTATE_COMMERCIAL',
+        'professional services': 'PROFESSIONAL_SERVICES',
+        'fitness': 'FITNESS_WELLNESS',
+        'wellness': 'FITNESS_WELLNESS',
+        'health': 'FITNESS_WELLNESS'
+      };
+
+      const presetKey = industryMapping[context.businessContext.industry.toLowerCase()];
+      if (presetKey && BUSINESS_INTELLIGENCE_PRESETS[presetKey]) {
+        const preset = BUSINESS_INTELLIGENCE_PRESETS[presetKey];
         enhancedFilter = {
           ...enhancedFilter,
           typeFilter: {

@@ -83,18 +83,18 @@ export const formatMapDataTool = createTool({
     // In a real scenario, if insights only give IDs, you'd need another tool call to get details.
     const googleInsightsData = rawData['getGooglePlacesInsightsTool'] || rawData['get-google-places-insights'];
     if (googleInsightsData && googleInsightsData.places) {
-        // This part is tricky. get-google-places-insights only returns place IDs.
-        // To get coordinates, you'd typically need to call get-google-place-details for each ID.
-        // For this tool, we'll assume the rawData might contain pre-fetched details or
-        // we'll just add a placeholder if only IDs are available.
-        for (const placeId of googleInsightsData.places) {
-            // If the rawData also contains details for this placeId, use them
-            // Otherwise, just add a feature with the ID
-            addFeature(
-                { type: 'Point', coordinates: [0, 0] }, // Placeholder coordinates
-                { placeId: placeId, source: 'Google Places Insights (ID only)' }
-            );
-        }
+      // This part is tricky. get-google-places-insights only returns place IDs.
+      // To get coordinates, you'd typically need to call get-google-place-details for each ID.
+      // For this tool, we'll assume the rawData might contain pre-fetched details or
+      // we'll just add a placeholder if only IDs are available.
+      for (const placeId of googleInsightsData.places) {
+        // If the rawData also contains details for this placeId, use them
+        // Otherwise, just add a feature with the ID
+        addFeature(
+          { type: 'Point', coordinates: [0, 0] }, // Placeholder coordinates
+          { placeId: placeId, source: 'Google Places Insights (ID only)' }
+        );
+      }
     }
 
     // Process searchEventsTool results
@@ -168,6 +168,60 @@ export const formatMapDataTool = createTool({
           address: placeByIdData.address?.freeformAddress,
           category: placeByIdData.poi?.categories?.[0],
           source: 'TomTom Place Details',
+        }
+      );
+    }
+
+    // Process Foursquare Places Search results
+    const foursquarePlacesData = rawData['foursquarePlacesSearchTool'] || rawData['foursquare-places-search'];
+    if (foursquarePlacesData && foursquarePlacesData.results) {
+      for (const result of foursquarePlacesData.results) {
+        if (result.latitude && result.longitude) {
+          addFeature(
+            {
+              type: 'Point',
+              coordinates: [result.longitude, result.latitude],
+            },
+            {
+              fsq_place_id: result.fsq_place_id,
+              name: result.name,
+              address: result.location?.formatted_address || result.location?.address,
+              categories: result.categories?.map((cat: any) => cat.name).join(', '),
+              rating: result.rating,
+              website: result.website,
+              tel: result.tel,
+              hours: result.hours?.display,
+              distance: result.distance,
+              source: 'Foursquare Places Search',
+            }
+          );
+        }
+      }
+    }
+
+    // Process Foursquare Place Details results
+    const foursquarePlaceDetailsData = rawData['foursquarePlaceDetailsTool'] || rawData['foursquare-place-details'];
+    if (foursquarePlaceDetailsData && foursquarePlaceDetailsData.latitude && foursquarePlaceDetailsData.longitude) {
+      const place = foursquarePlaceDetailsData;
+      addFeature(
+        {
+          type: 'Point',
+          coordinates: [place.longitude, place.latitude],
+        },
+        {
+          fsq_place_id: place.fsq_place_id,
+          name: place.name,
+          address: place.location?.formatted_address || place.location?.address,
+          categories: place.categories?.map((cat: any) => cat.name).join(', '),
+          rating: place.rating,
+          website: place.website,
+          tel: place.tel,
+          email: place.email,
+          hours: place.hours?.display,
+          description: place.description,
+          features: place.features,
+          social_media: place.social_media,
+          source: 'Foursquare Place Details',
         }
       );
     }

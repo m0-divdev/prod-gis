@@ -20,7 +20,33 @@ export enum ResponseType {
 export class UnifiedChatDto {
   @ApiProperty({
     description: 'The user message/query',
-    example: 'Show me coffee shops in SoHo on a map',
+    examples: {
+      'map-query': {
+        summary: 'Map visualization',
+        value: 'Show me coffee shops in SoHo on a map'
+      },
+      'urban-planning': {
+        summary: 'Urban planning analysis',
+        value: 'Analyze walkability and public transit access in downtown Austin'
+      },
+      'real-estate': {
+        summary: 'Real estate analysis',
+        value: 'Find commercial properties near major highways in Dallas for investment'
+      },
+      'energy-utilities': {
+        summary: 'Energy infrastructure',
+        value: 'Assess renewable energy potential and grid infrastructure in Phoenix'
+      },
+      'retail': {
+        summary: 'Retail location analysis',
+        value: 'Identify optimal locations for a new coffee shop chain in Seattle'
+      },
+      'supply-chain': {
+        summary: 'Supply chain & logistics',
+        value: 'Find distribution centers near major ports in Los Angeles for import logistics'
+      }
+    },
+    example: 'Find warehouses and distribution centers near Chicago with rail access',
   })
   @IsString()
   message: string;

@@ -7,6 +7,7 @@ import { urbanPlanningAgent } from './agents/urban-planning-agent';
 import { realEstateAgent } from './agents/real-estate-agent';
 import { energyUtilitiesAgent } from './agents/energy-utilities-agent';
 import { retailAgent } from './agents/retail-agent';
+import { supplyChainAgent } from './agents/supply-chain-agent';
 
 // Import shared components
 import { mapDataAgent } from './shared';
@@ -23,6 +24,7 @@ export const mastra: Mastra = new Mastra({
     realEstateAgent,
     energyUtilitiesAgent,
     retailAgent,
+    supplyChainAgent,
 
     // Shared agents
     mapDataAgent,

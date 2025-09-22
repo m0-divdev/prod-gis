@@ -35,7 +35,7 @@ import {
 @ApiTags('Places')
 
 // Define the base route for all endpoints in this controller
-@Controller('api/places')
+@Controller('places')
 
 /**
  * PlacesController - Main REST API controller for the Foursquare Places application
@@ -57,7 +57,7 @@ export class PlacesController {
    * Constructor - Injects the PlacesService for handling business logic
    * @param placesService - Service containing all business logic for places operations
    */
-  constructor(private readonly placesService: PlacesService) {}
+  constructor(private readonly placesService: PlacesService) { }
 
   // Legacy chat endpoint removed - only unified chat needed
 
@@ -263,6 +263,69 @@ export class PlacesController {
     } catch (error) {
       throw new HttpException(
         `Retail analysis failed: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Supply Chain Agent - Optimizing Logistics Networks
+   */
+  @Post('supply-chain')
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @ApiOperation({
+    summary: 'Supply Chain & Logistics Optimization',
+    description: 'Analyze distribution networks, optimize warehouse locations, and enhance supply chain efficiency using Foursquare Places API'
+  })
+  @ApiBody({
+    type: UnifiedChatDto,
+    description: 'Query for supply chain and logistics analysis',
+    examples: {
+      'warehouse-analysis': {
+        summary: 'Warehouse location analysis',
+        value: {
+          message: 'Find optimal warehouse locations near major highways in Texas with rail access',
+          sessionId: 'supply-chain-session-1',
+          responsePreference: 'analysis'
+        }
+      },
+      'port-connectivity': {
+        summary: 'Port connectivity assessment',
+        value: {
+          message: 'Analyze transportation infrastructure around Port of Los Angeles for import distribution',
+          sessionId: 'logistics-session-2',
+          responsePreference: 'analysis'
+        }
+      },
+      'last-mile-delivery': {
+        summary: 'Last-mile delivery planning',
+        value: {
+          message: 'Identify micro-fulfillment center locations for same-day delivery in Chicago metropolitan area',
+          sessionId: 'delivery-session-3',
+          responsePreference: 'geojson'
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Supply chain analysis results with logistics insights and facility recommendations',
+    type: UnifiedChatResponseDto
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - Invalid supply chain query'
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error during supply chain analysis'
+  })
+  async processSupplyChain(@Body() unifiedChatDto: UnifiedChatDto): Promise<UnifiedChatResponseDto> {
+    try {
+      return await this.placesService.processSupplyChainQuery(unifiedChatDto);
+    } catch (error) {
+      throw new HttpException(
+        `Supply chain analysis failed: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
