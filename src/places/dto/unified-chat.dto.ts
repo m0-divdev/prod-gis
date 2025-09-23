@@ -45,8 +45,7 @@ export class UnifiedChatDto {
         summary: 'Supply chain & logistics',
         value: 'Find distribution centers near major ports in Los Angeles for import logistics'
       }
-    },
-    example: 'Find warehouses and distribution centers near Chicago with rail access',
+    }
   })
   @IsString()
   message: string;
