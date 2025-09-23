@@ -15,40 +15,19 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 
 // Import the main business logic service
 import { PlacesService } from './places.service';
-
-// Import DTOs for unified chat and health check only
-import {
-  HealthResponseDto,
-  UnifiedChatDto,
-  UnifiedChatResponseDto,
-} from './dto';
+import { HealthResponseDto } from './dto/health-places.dto';
+import { UnifiedChatDto, UnifiedChatResponseDto } from './dto/unified-chat.dto';
 
 // Swagger tag for grouping all endpoints under "Places" in API docs
 @ApiTags('Places')
 // Define the base route for all endpoints in this controller
 @Controller('places')
-
-/**
- * PlacesController - Main REST API controller for the Foursquare Places application
- * 
- * This controller provides multiple endpoints for location intelligence:
- * 1. /chat - Legacy non-streaming chat with AI agents
- * 2. /chat/stream - Streaming chat using Server-Sent Events (SSE)
- * 3. /search - Parameterized place search
- * 4. /location - Get location suggestions
- * 5. /health - Health check endpoint
- * 6. /examples - Usage examples for the API
- * 7. /chat/unified - Intelligent routing endpoint (NEW)
- * 
- * The controller acts as the entry point for all HTTP requests and delegates
- * business logic to the PlacesService.
- */
 export class PlacesController {
   /**
    * Constructor - Injects the PlacesService for handling business logic
    * @param placesService - Service containing all business logic for places operations
    */
-  constructor(private readonly placesService: PlacesService) { }
+  constructor(private readonly placesService: PlacesService) {}
 
   @Get('health')
   @ApiOperation({
@@ -84,6 +63,14 @@ export class PlacesController {
   @ApiBody({
     type: UnifiedChatDto,
     description: 'Query for urban planning analysis',
+    schema: {
+      example: {
+        message:
+          'Plan sustainable development for a new residential area in Portland, Oregon. Consider green spaces, public transportation access, and environmental impact.',
+        sessionId: 'urban-planning-session-1',
+        responsePreference: 'analysis',
+      },
+    },
   })
   @ApiResponse({
     status: 200,
@@ -212,7 +199,8 @@ export class PlacesController {
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({
     summary: 'Supply Chain & Logistics Optimization',
-    description: 'Analyze distribution networks, optimize warehouse locations, and enhance supply chain efficiency using Foursquare Places API'
+    description:
+      'Analyze distribution networks, optimize warehouse locations, and enhance supply chain efficiency using Foursquare Places API',
   })
   @ApiBody({
     type: UnifiedChatDto,
@@ -221,43 +209,49 @@ export class PlacesController {
       'warehouse-analysis': {
         summary: 'Warehouse location analysis',
         value: {
-          message: 'Find optimal warehouse locations near major highways in Texas with rail access',
+          message:
+            'Find optimal warehouse locations near major highways in Texas with rail access',
           sessionId: 'supply-chain-session-1',
-          responsePreference: 'analysis'
-        }
+          responsePreference: 'analysis',
+        },
       },
       'port-connectivity': {
         summary: 'Port connectivity assessment',
         value: {
-          message: 'Analyze transportation infrastructure around Port of Los Angeles for import distribution',
+          message:
+            'Analyze transportation infrastructure around Port of Los Angeles for import distribution',
           sessionId: 'logistics-session-2',
-          responsePreference: 'analysis'
-        }
+          responsePreference: 'analysis',
+        },
       },
       'last-mile-delivery': {
         summary: 'Last-mile delivery planning',
         value: {
-          message: 'Identify micro-fulfillment center locations for same-day delivery in Chicago metropolitan area',
+          message:
+            'Identify micro-fulfillment center locations for same-day delivery in Chicago metropolitan area',
           sessionId: 'delivery-session-3',
-          responsePreference: 'geojson'
-        }
-      }
-    }
+          responsePreference: 'geojson',
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 200,
-    description: 'Supply chain analysis results with logistics insights and facility recommendations',
-    type: UnifiedChatResponseDto
+    description:
+      'Supply chain analysis results with logistics insights and facility recommendations',
+    type: UnifiedChatResponseDto,
   })
   @ApiResponse({
     status: 400,
-    description: 'Bad request - Invalid supply chain query'
+    description: 'Bad request - Invalid supply chain query',
   })
   @ApiResponse({
     status: 500,
-    description: 'Internal server error during supply chain analysis'
+    description: 'Internal server error during supply chain analysis',
   })
-  async processSupplyChain(@Body() unifiedChatDto: UnifiedChatDto): Promise<UnifiedChatResponseDto> {
+  async processSupplyChain(
+    @Body() unifiedChatDto: UnifiedChatDto,
+  ): Promise<UnifiedChatResponseDto> {
     try {
       return await this.placesService.processSupplyChainQuery(unifiedChatDto);
     } catch (error) {
